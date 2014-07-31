@@ -1,0 +1,82 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>1.554</version>
+  </parent>
+
+  <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
+  <artifactId>kerberos-sso</artifactId>
+  <packaging>hpi</packaging>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>Kerberos SSO plugin</name>
+  <!--<url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>-->
+
+  <developers>
+      <developer>
+          <id>fredrikpersson</id>
+          <name>Fredrik Persson</name>
+          <email>fredrik6.persson@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://se.linkedin.com/in/fpersson</url>
+          <roles>
+              <role>architect</role>
+              <role>developer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>joakim_ahle</id>
+          <name>Joakim Ahle</name>
+          <email>joakim.ahle@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://se.linkedin.com/in/joakimahle</url>
+          <roles>
+              <role>architect</role>
+              <role>developer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>rsandell</id>
+          <name>Robert Sandell</name>
+          <email>robert.sandell@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://www.linkedin.com/in/robertsandell</url>
+          <roles>
+              <role>architect</role>
+              <role>maintainer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+  </developers>
+
+  <dependencies>
+      <dependency>
+          <groupId>net.sourceforge.spnego</groupId>
+          <artifactId>spnego</artifactId>
+          <version>r7</version>
+      </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+    <repository>
+      <id>repo.jenkins-ci.org-repo</id>
+      <url>http://repo.jenkins-ci.org/repo/</url>
+    </repository>
+  </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
+
