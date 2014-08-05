@@ -111,7 +111,10 @@ public class KerberosSSOFilter implements Filter {
         SpnegoHttpServletResponse spnegoHttpResponse = new SpnegoHttpServletResponse(
                 (HttpServletResponse)response);
 
-        if (PluginImpl.getInstance().isRedirectEnabled()) {
+        if (PluginImpl.getInstance().isRedirectEnabled()
+                && !httpRequest.getLocalAddr().equals(httpRequest.getRemoteAddr())) {
+                // If Local and Remote address is the same, the user is Localhost and shouldn't be redirected.
+
             String requestedDomain = new URL(httpRequest.getRequestURL().toString()).getHost();
             String requestedURL = httpRequest.getRequestURL().toString();
             if (!requestedDomain.toLowerCase().contains(PluginImpl.getInstance().getRedirect().toLowerCase())) {
