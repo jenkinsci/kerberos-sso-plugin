@@ -72,7 +72,12 @@ public class PluginImpl extends Plugin {
      * @return the instance.
      */
     public static PluginImpl getInstance() {
-        return Jenkins.getInstance().getPlugin(PluginImpl.class);
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            return jenkins.getPlugin(PluginImpl.class);
+        } else {
+            return null;
+        }
     }
 
     /**

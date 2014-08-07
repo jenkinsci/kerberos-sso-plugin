@@ -28,6 +28,7 @@ import hudson.Functions;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import jenkins.security.NonSerializableSecurityContext;
+import jenkins.security.SecurityListener;
 import net.sourceforge.spnego.SpnegoAuthenticator;
 import net.sourceforge.spnego.SpnegoHttpServletResponse;
 import net.sourceforge.spnego.SpnegoPrincipal;
@@ -154,8 +155,8 @@ public class KerberosSSOFilter implements Filter {
                 principalName = principalName.substring(0, principalName.indexOf("@"));
             }
 
-            SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
             try {
+                SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
                 UserDetails userDetails = realm.loadUserByUsername(principalName);
                 Authentication authToken = new UsernamePasswordAuthenticationToken(
                         userDetails.getUsername(),
@@ -163,6 +164,7 @@ public class KerberosSSOFilter implements Filter {
                         userDetails.getAuthorities());
 
                 SecurityContextHolder.setContext(new NonSerializableSecurityContext(authToken));
+                SecurityListener.fireLoggedIn(userDetails.getUsername());
                 logger.log(Level.FINE, "Authenticated user {0}", userDetails.getUsername());
             } catch (UsernameNotFoundException e) {
                 logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);

@@ -29,6 +29,8 @@ import lib.FormTagLib
 def form = namespace(FormTagLib)
 def location = "/plugin/kerberos-sso/"
 
+
+//TODO: It might work better in the blocks to use my.enabled etc.
 def oldEnabled = it.enabled
 
 def oldAccountName = it.accountName
@@ -60,10 +62,9 @@ form.section(title:"Kerberos Single Sign-On") {
         }
 
         form.section(title:"Kerberos properties") {
-
             if (restartNeeded) {
                 form.entry () {
-                    text(style:"color:red;font-weight:bold", "Any changes made in this section will take place after " +
+                    p(style:"color:red;font-weight:bold", "Any changes made in this section will take place after " +
                             "Jenkins has been restarted")
                 }
             }
