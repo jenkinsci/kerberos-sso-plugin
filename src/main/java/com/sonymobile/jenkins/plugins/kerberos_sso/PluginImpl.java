@@ -292,6 +292,14 @@ public class PluginImpl extends Plugin {
     }
 
     /**
+     * Used to determine if Jenkins have to be restarted for the config changes to take place.
+     * @return whether Jenkins has to be restarted.
+     */
+    public boolean isRestartNeeded() {
+        return filter != null;
+    }
+
+    /**
      * Creates a map of the current configuration. This is then sent to the Kerberos filter's constructor.
      * @return a mappning between properties and configuration.
      */

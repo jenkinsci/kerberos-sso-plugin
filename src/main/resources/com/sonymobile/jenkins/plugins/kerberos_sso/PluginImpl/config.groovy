@@ -24,7 +24,9 @@
 
 package com.sonymobile.jenkins.plugins.kerberos_sso.PluginImpl
 
-def form = namespace(lib.FormTagLib)
+import lib.FormTagLib
+
+def form = namespace(FormTagLib)
 def location = "/plugin/kerberos-sso/"
 
 def oldEnabled = it.enabled
@@ -45,6 +47,8 @@ def oldAllowDelegation = it.allowDelegation
 def oldAllowUnsecureBasic = it.allowUnsecureBasic
 def oldPromptNtlm = it.promptNtlm
 
+def restartNeeded = it.restartNeeded
+
 // TODO: Investigate if it's possible to data-bind with field only. This require PluginImpl to use descriptorImpl
 form.section(title:"Kerberos Single Sign-On") {
     form.optionalBlock(title:"Enable Single Sign-On plugin", help:location+"/help-overview.html", field:"enabled", checked:oldEnabled) {
@@ -57,9 +61,11 @@ form.section(title:"Kerberos Single Sign-On") {
 
         form.section(title:"Kerberos properties") {
 
-            form.entry () {
-                text(style:"color:red;font-weight:bold", "Any changes made in this section will take place after " +
-                        "Jenkins has been restarted")
+            if (restartNeeded) {
+                form.entry () {
+                    text(style:"color:red;font-weight:bold", "Any changes made in this section will take place after " +
+                            "Jenkins has been restarted")
+                }
             }
 
             form.entry(field:"account", title:"Service Account", help:location+"/help-service-account.html") {

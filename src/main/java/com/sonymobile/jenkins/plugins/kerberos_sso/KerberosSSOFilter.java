@@ -130,7 +130,7 @@ public class KerberosSSOFilter implements Filter {
                 || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
                 || Functions.isAnonymous()) {
 
-            SpnegoPrincipal spnegoPrincipal = null;
+            SpnegoPrincipal spnegoPrincipal;
             try {
                 spnegoPrincipal = spnegoAuthenticator.authenticate(httpRequest, spnegoHttpResponse);
             } catch (Exception e) {
