@@ -52,71 +52,68 @@ def oldPromptNtlm = it.promptNtlm
 def restartNeeded = it.restartNeeded
 
 // TODO: Investigate if it's possible to data-bind with field only. This require PluginImpl to use descriptorImpl
-form.section(title:"Kerberos Single Sign-On") {
-    form.optionalBlock(title:"Enable Single Sign-On plugin", help:location+"/help-overview.html", field:"enabled", checked:oldEnabled) {
+form.section(title:_("Kerberos Single Sign-On")) {
+    form.optionalBlock(title:_("Enable Single Sign-On plugin"), help:location+"/help-overview.html", field:"enabled", checked:oldEnabled) {
 
-        form.optionalBlock(title:"Redirect if domain is not present in URL", help:location+"/help-redirect.html", field:"redirectEnabled", checked:oldRedirectEnabled) {
-            form.entry(field:"redirect", title:"Domain to redirect to") {
+        form.optionalBlock(title:_("Redirect if domain is not present in URL"), help:location+"/help-redirect.html", field:"redirectEnabled", checked:oldRedirectEnabled) {
+            form.entry(field:"redirect", title:_("Domain to redirect to")) {
                 form.textbox(value: oldRedirect)
             }
         }
 
-        form.section(title:"Kerberos properties") {
+        form.section(title:_("Kerberos properties")) {
             if (restartNeeded) {
                 form.entry () {
-                    p(style:"color:red;font-weight:bold", "Any changes made in this section will take place after " +
-                            "Jenkins has been restarted")
+                    p(style:"color:red;font-weight:bold", _("Any changes made in this section will take place after " +
+                            "Jenkins has been restarted"))
                 }
             }
 
-            form.entry(field:"account", title:"Service Account", help:location+"/help-service-account.html") {
+            form.entry(field:"account", title:_("Service Account"), help:location+"/help-service-account.html") {
                 form.textbox(value:oldAccountName)
             }
 
-            form.entry(field:"password", title:"Password") {
+            form.entry(field:"password", title:_("Password")) {
                 form.password(value:oldPassword)
             }
 
-            form.entry(field: "krb5Location", title: "Location of krb5.conf", help:location+"/help-krb5-location.html") {
+            form.entry(field: "krb5Location", title:_("Location of krb5.conf"), help:location+"/help-krb5-location.html") {
                 form.textbox(value:oldKrb5Location)
             }
 
-            form.entry(field: "loginLocation", title: "Location of login.conf", help:location+"/help-login-location.html") {
+            form.entry(field: "loginLocation", title:_("Location of login.conf"), help:location+"/help-login-location.html") {
                 form.textbox(value:oldLoginLocation)
             }
 
-            form.entry(field: "loginServerModule", title: "Login Server Module", help:location+"/help-server-module.html") {
+            form.entry(field: "loginServerModule", title:_("Login Server Module"), help:location+"/help-server-module.html") {
                 form.textbox(value:oldLoginServerModule)
             }
 
-            form.entry(field: "loginClientModule", title: "Login Client Module", help:location+"/help-client-module.html") {
+            form.entry(field: "loginClientModule", title:_("Login Client Module"), help:location+"/help-client-module.html") {
                 form.textbox(value:oldLoginClientModule)
             }
 
-            form.entry(title:"Allow Localhost", help:location+"/help-allow-localhost.html") {
+            form.entry(title:_("Allow Localhost"), help:location+"/help-allow-localhost.html") {
                 form.checkbox(field: "allowLocalhost", checked:oldAllowLocalhost)
             }
 
-            form.entry(title:"Allow Basic", help:location+"/help-allow-basic.html") {
+            form.entry(title:_("Allow Basic"), help:location+"/help-allow-basic.html") {
                 form.checkbox(field: "allowBasic", checked:oldAllowBasic)
             }
 
-            form.entry(title:"Allow Delegation", help:location+"/help-allow-delegation.html") {
+            form.entry(title:_("Allow Delegation"), help:location+"/help-allow-delegation.html") {
                 form.checkbox(field: "allowDelegation", checked:oldAllowDelegation)
             }
 
-            form.entry(title:"Allow Unsecure Basic", help:location+"/help-allow-unsecure-basic.html") {
+            form.entry(title:_("Allow Unsecure Basic"), help:location+"/help-allow-unsecure-basic.html") {
                 form.checkbox(field: "allowUnsecureBasic", checked:oldAllowUnsecureBasic)
             }
 
-            form.entry(title:"Prompt NTLM", help:location+"/help-prompt-ntlm.html") {
+            form.entry(title:_("Prompt NTLM"), help:location+"/help-prompt-ntlm.html") {
                 form.checkbox(field: "promptNtlm", checked:oldPromptNtlm)
             }
-
         }
-
     }
-
 }
 
 
