@@ -26,6 +26,7 @@ package com.sonymobile.jenkins.plugins.kerberos_sso;
 
 import hudson.Functions;
 import hudson.security.SecurityRealm;
+import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.NonSerializableSecurityContext;
 import jenkins.security.SecurityListener;
@@ -164,7 +165,9 @@ public class KerberosSSOFilter implements Filter {
                         userDetails.getAuthorities());
 
                 SecurityContextHolder.setContext(new NonSerializableSecurityContext(authToken));
-                SecurityListener.fireLoggedIn(userDetails.getUsername());
+                if (Jenkins.getVersion().isNewerThan(new VersionNumber("1.568"))) {
+                    SecurityListener.fireLoggedIn(userDetails.getUsername());
+                }
                 logger.log(Level.FINE, "Authenticated user {0}", userDetails.getUsername());
             } catch (UsernameNotFoundException e) {
                 logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
