@@ -35,9 +35,12 @@ import net.sourceforge.spnego.SpnegoHttpFilter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.servlet.ServletException;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The core of this Plugin. Handles the configuration of the {@link KerberosSSOFilter}
@@ -46,6 +49,8 @@ import java.util.Map;
  */
 @Extension
 public class PluginImpl extends Plugin {
+
+    private static final Logger logger = Logger.getLogger(PluginImpl.class.getName());
 
     private boolean enabled = false;
 
@@ -87,9 +92,15 @@ public class PluginImpl extends Plugin {
     @Override
     public void start() throws Exception {
         load();
-        if (enabled) {
-            this.filter = new KerberosSSOFilter(createConfigMap());
-            PluginServletFilter.addFilter(filter);
+        try {
+            if (enabled) {
+                this.filter = new KerberosSSOFilter(createConfigMap());
+                PluginServletFilter.addFilter(filter);
+            }
+        } catch (ServletException e) {
+            logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
+            enabled = false;
+            removeFilter();
         }
     }
 
@@ -128,8 +139,6 @@ public class PluginImpl extends Plugin {
     public void configure(StaplerRequest req, JSONObject formData)
             throws Descriptor.FormException, IOException, ServletException {
 
-        removeFilter();
-
         if (formData.has("enabled")) {
 
             JSONObject data = (JSONObject)formData.get("enabled");
@@ -143,11 +152,9 @@ public class PluginImpl extends Plugin {
                 throw new Descriptor.FormException("Malformed form recieved. Try again.", "enabled");
             }
 
-            this.enabled = true;
+            // Starting with data that needs validation to not break an existing configuration.
 
-            this.accountName = (String)data.get("account");
-
-            this.password = Secret.fromString((String)data.get("password"));
+            changeLoginLocation((String)data.get("loginLocation"));
 
             if (data.has("redirectEnabled")) {
                 JSONObject redirectData = (JSONObject)data.get("redirectEnabled");
@@ -164,8 +171,17 @@ public class PluginImpl extends Plugin {
                 this.redirectEnabled = false;
             }
 
+            //Then processing data that it's up to the user to get correct.
+
+            this.enabled = true;
+
+            this.accountName = (String)data.get("account");
+
+            this.password = Secret.fromString((String)data.get("password"));
+
+
             this.krb5Location = (String)data.get("krb5Location");
-            this.loginLocation = (String)data.get("loginLocation");
+
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
@@ -174,14 +190,30 @@ public class PluginImpl extends Plugin {
             this.promptNtlm = (Boolean)data.get("promptNtlm");
             this.allowUnsecureBasic = (Boolean)data.get("allowUnsecureBasic");
 
+            removeFilter();
             this.filter = new KerberosSSOFilter(createConfigMap());
             PluginServletFilter.addFilter(filter);
 
         } else {
+            removeFilter();
             enabled = false;
         }
 
         save();
+    }
+
+    /**
+     * Tests and changes the passed loginLocation
+     * @param newLoginLocation the new location of login.conf
+     * @throws Descriptor.FormException if the file does not exist
+     */
+    private void changeLoginLocation(String newLoginLocation) throws Descriptor.FormException {
+        File login = new File(newLoginLocation);
+        if (login.exists() && login.isFile()) {
+            this.loginLocation = newLoginLocation;
+        } else {
+            throw new Descriptor.FormException("The path to login.conf is incorrect.", "loginLocation");
+        }
     }
 
     /**
