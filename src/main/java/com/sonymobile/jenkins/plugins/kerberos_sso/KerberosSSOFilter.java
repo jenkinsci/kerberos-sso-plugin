@@ -49,6 +49,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -166,7 +167,12 @@ public class KerberosSSOFilter implements Filter {
 
                 SecurityContextHolder.setContext(new NonSerializableSecurityContext(authToken));
                 if (Jenkins.getVersion().isNewerThan(new VersionNumber("1.568"))) {
-                    SecurityListener.fireLoggedIn(userDetails.getUsername());
+                    try {
+                        Method fireLoggedIn = SecurityListener.class.getMethod("fireLoggedIn", String.class);
+                        fireLoggedIn.invoke(userDetails.getUsername());
+                    } catch (Exception e) {
+                        logger.log(Level.WARNING, "Failed to invoke fireLoggedIn method", e);
+                    }
                 }
                 logger.log(Level.FINE, "Authenticated user {0}", userDetails.getUsername());
             } catch (UsernameNotFoundException e) {
