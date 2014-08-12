@@ -107,6 +107,7 @@ public class KerberosSSOFilter implements Filter {
             throws IOException, ServletException {
 
         if (!(request instanceof HttpServletRequest) || !(response instanceof  HttpServletResponse)) {
+            chain.doFilter(request, response);
             return;
         }
 
@@ -132,6 +133,7 @@ public class KerberosSSOFilter implements Filter {
         if (SecurityContextHolder.getContext().getAuthentication() == null
                 || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
                 || Functions.isAnonymous()) {
+            Functions.advertiseHeaders((HttpServletResponse)response); //Adds headers for CLI
 
             SpnegoPrincipal spnegoPrincipal;
             try {
