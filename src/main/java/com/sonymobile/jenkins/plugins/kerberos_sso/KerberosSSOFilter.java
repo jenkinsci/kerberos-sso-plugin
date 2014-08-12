@@ -84,7 +84,7 @@ public class KerberosSSOFilter implements Filter {
         try {
             spnegoAuthenticator = new SpnegoAuthenticator(config);
         } catch (Exception e) {
-            throw new ServletException("Failed to initialize Kerberos SSO filter", e);
+            throw new ServletException(e);
         }
     }
 
