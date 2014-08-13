@@ -63,6 +63,12 @@ import java.util.logging.Logger;
  */
 public class KerberosSSOFilter implements Filter {
 
+    /**
+     * Header name that can be passed in a request in order to make this
+     * filter ignore the request and just pass it on in the filter chain.
+     */
+    public static final String BYPASS_HEADER = "Bypass-Kerberos";
+
     private transient SpnegoAuthenticator spnegoAuthenticator;
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
@@ -106,7 +112,8 @@ public class KerberosSSOFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (!(request instanceof HttpServletRequest) || !(response instanceof  HttpServletResponse)) {
+        if ((!(request instanceof HttpServletRequest) || !(response instanceof  HttpServletResponse))
+                || containsBypassHeader(request)) {
             chain.doFilter(request, response);
             return;
         }
@@ -189,6 +196,18 @@ public class KerberosSSOFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Checks if argument {@link ServletRequest} contains a bypass header.
+     * @param request the request to check for header in
+     * @return true if the request contained a bypass header, otherwise false
+     */
+    private static boolean containsBypassHeader(ServletRequest request) {
+        if (!(request instanceof HttpServletRequest)) {
+            return false;
+        }
+        return ((HttpServletRequest)request).getHeader(BYPASS_HEADER) != null;
     }
 
     /**
