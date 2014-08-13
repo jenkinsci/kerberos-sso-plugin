@@ -22,7 +22,7 @@
  *  THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.kerberos_sso;
+package com.sonymobile.jenkins.plugins.kerberossso;
 
 import hudson.Functions;
 import hudson.security.SecurityRealm;

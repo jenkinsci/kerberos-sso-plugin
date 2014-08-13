@@ -22,7 +22,7 @@
  *  THE SOFTWARE.
  */
 
-package com.sonymobile.jenkins.plugins.kerberos_sso.PluginImpl
+package com.sonymobile.jenkins.plugins.kerberossso.PluginImpl
 
 import lib.FormTagLib
 
