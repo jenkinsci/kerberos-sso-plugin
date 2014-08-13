@@ -58,8 +58,8 @@ import java.util.logging.Logger;
 
 /**
  * Filter that authenticates users using Kerberos SSO.
- * @author Joakim Ahle &lt;joakim.ahle@sonyericsson.com&gt;
- * @author Fredrik Persson &lt;fredrik6.persson@sonyericsson.com&gt;
+ * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
+ * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
 public class KerberosSSOFilter implements Filter {
 

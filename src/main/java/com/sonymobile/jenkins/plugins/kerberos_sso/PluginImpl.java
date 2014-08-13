@@ -42,7 +42,7 @@ import java.util.Map;
 /**
  * The core of this Plugin. Handles the configuration of the {@link KerberosSSOFilter}
  * It also starts / stops the filter at the user's request and data-binds to config.groovy.
- * @author Joakim Ahle &lt;joakim.ahle@sonyericsson.com&gt;
+ * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
  */
 @Extension
 public class PluginImpl extends Plugin {
