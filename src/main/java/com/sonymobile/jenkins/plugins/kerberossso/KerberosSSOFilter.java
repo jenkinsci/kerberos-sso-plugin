@@ -24,15 +24,15 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
+import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.Functions;
+import hudson.security.ACL;
 import hudson.security.SecurityRealm;
 import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
-import jenkins.security.NonSerializableSecurityContext;
 import jenkins.security.SecurityListener;
-import net.sourceforge.spnego.SpnegoAuthenticator;
 import net.sourceforge.spnego.SpnegoHttpServletResponse;
-import net.sourceforge.spnego.SpnegoPrincipal;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -40,6 +40,7 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.springframework.dao.DataAccessException;
 
+import javax.security.auth.login.LoginException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -51,6 +52,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -69,17 +71,21 @@ public class KerberosSSOFilter implements Filter {
      */
     public static final String BYPASS_HEADER = "Bypass-Kerberos";
 
-    private transient SpnegoAuthenticator spnegoAuthenticator;
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
     private transient Map<String, String> config = new HashMap<String, String>();
+    private KerberosAuthenticatorFactory authenticatorFactory;
+    private KerberosAuthenticator authenticator;
 
     /**
      * Saves the submitted config. The filter will then be started when init is called.
      * @param config the filter configuration
+     * @param authenticatorFactory the factory used to create the desired authenticator type
+     *                             in the init method.
      */
-    public KerberosSSOFilter(Map<String, String> config) {
+    public KerberosSSOFilter(Map<String, String> config, KerberosAuthenticatorFactory authenticatorFactory) {
         this.config = config;
+        this.authenticatorFactory = authenticatorFactory;
     }
 
     /**
@@ -89,7 +95,7 @@ public class KerberosSSOFilter implements Filter {
      */
     public void init(FilterConfig filterConfig) throws ServletException {
         try {
-            spnegoAuthenticator = new SpnegoAuthenticator(config);
+            authenticator = authenticatorFactory.getInstance(config);
         } catch (Exception e) {
             throw new ServletException(e);
         }
@@ -142,25 +148,22 @@ public class KerberosSSOFilter implements Filter {
                 || Functions.isAnonymous()) {
             Functions.advertiseHeaders((HttpServletResponse)response); //Adds headers for CLI
 
-            SpnegoPrincipal spnegoPrincipal;
+            Principal principal;
+
             try {
-                spnegoPrincipal = spnegoAuthenticator.authenticate(httpRequest, spnegoHttpResponse);
-            } catch (Exception e) {
-                throw new ServletException("Failed to authenticate user", e);
-            }
-
-            // Expecting negotiation
-            if (spnegoHttpResponse.isStatusSet()) {
-                return;
-            }
-
-            if (spnegoPrincipal == null) {
+                principal = authenticator.authenticate(httpRequest, spnegoHttpResponse);
+            } catch (LoginException e) {
                 logger.log(Level.WARNING, "Failed to fetch spnegoPrincipal name for user");
                 chain.doFilter(request, spnegoHttpResponse);
                 return;
             }
 
-            String principalName = spnegoPrincipal.getName();
+            // Expecting negotiation
+            if (principal == null) {
+                return;
+            }
+
+            String principalName = principal.getName();
 
             if (principalName.contains("@")) {
                 principalName = principalName.substring(0, principalName.indexOf("@"));
@@ -174,7 +177,7 @@ public class KerberosSSOFilter implements Filter {
                         userDetails.getPassword(),
                         userDetails.getAuthorities());
 
-                SecurityContextHolder.setContext(new NonSerializableSecurityContext(authToken));
+                ACL.impersonate(authToken);
                 if (Jenkins.getVersion().isNewerThan(new VersionNumber("1.568"))) {
                     try {
                         Method fireLoggedIn = SecurityListener.class.getMethod("fireLoggedIn", String.class);
@@ -214,8 +217,8 @@ public class KerberosSSOFilter implements Filter {
      * Called if the filter needs to be destroyed.
      */
     public void destroy() {
-        if (spnegoAuthenticator != null) {
-            spnegoAuthenticator.dispose();
+        if (authenticator != null) {
+            authenticator.dispose();
         }
     }
 }

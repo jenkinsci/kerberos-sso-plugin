@@ -24,6 +24,7 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticationFactory;
 import hudson.Extension;
 import hudson.Plugin;
 import hudson.model.Descriptor;
@@ -94,7 +95,7 @@ public class PluginImpl extends Plugin {
         load();
         try {
             if (enabled) {
-                this.filter = new KerberosSSOFilter(createConfigMap());
+            this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
                 PluginServletFilter.addFilter(filter);
             }
         } catch (ServletException e) {
@@ -191,7 +192,7 @@ public class PluginImpl extends Plugin {
             this.allowUnsecureBasic = (Boolean)data.get("allowUnsecureBasic");
 
             removeFilter();
-            this.filter = new KerberosSSOFilter(createConfigMap());
+            this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
             PluginServletFilter.addFilter(filter);
 
         } else {
