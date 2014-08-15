@@ -29,11 +29,11 @@ import lib.FormTagLib
 def form = namespace(FormTagLib)
 def location = "/plugin/kerberos-sso/"
 
-form.section(title:_("Kerberos Single Sign-On")) {
-    form.optionalBlock(title:_("Enable Single Sign-On plugin"), help:location+"/help-overview.html", field:"enabled", checked:my.enabled) {
+form.section(title:"Kerberos Single Sign-On") {
+    form.optionalBlock(title:_("EnablePlugin"), help:location+"/help-overview.html", field:"enabled", checked:my.enabled) {
 
-        form.optionalBlock(title:_("Redirect if domain is not present in URL"), help:location+"/help-redirect.html", field:"redirectEnabled", checked:my.redirectEnabled) {
-            form.entry(field:"redirect", title:_("Domain to redirect to")) {
+        form.optionalBlock(title:_("RedirectCheck"), help:location+"/help-redirect.html", field:"redirectEnabled", checked:my.redirectEnabled) {
+            form.entry(field:"redirect", title:_("RedirectTo")) {
                 form.textbox(value:my.redirect)
             }
         }
@@ -41,8 +41,7 @@ form.section(title:_("Kerberos Single Sign-On")) {
         form.section(title:_("Kerberos properties")) {
             if (my.restartNeeded) {
                 form.entry () {
-                    p(style:"color:red;font-weight:bold", _("Any changes made in this section will take place after " +
-                            "Jenkins has been restarted"))
+                    p(style:"color:red;font-weight:bold", _("RestartNotice"))
                 }
             }
 
