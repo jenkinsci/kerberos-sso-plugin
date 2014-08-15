@@ -222,5 +222,18 @@
             </plugin>
         </plugins>
     </reporting>
+
+    <distributionManagement>
+        <repository>
+            <id>maven.jenkins-ci.org</id>
+            <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
+
+    <scm>
+        <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
+        <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
+    </scm>
 </project>
 
