@@ -51,6 +51,16 @@
           </roles>
           <timezone>+1</timezone>
       </developer>
+      <developer>
+          <id>t_westling</id>
+          <name>Tomas Westling</name>
+          <email>tomas.westling@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <roles>
+              <role>maintainer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
   </developers>
 
     <properties>
