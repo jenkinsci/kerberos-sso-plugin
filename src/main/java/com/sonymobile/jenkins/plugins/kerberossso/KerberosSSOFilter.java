@@ -181,7 +181,7 @@ public class KerberosSSOFilter implements Filter {
                 if (Jenkins.getVersion().isNewerThan(new VersionNumber("1.568"))) {
                     try {
                         Method fireLoggedIn = SecurityListener.class.getMethod("fireLoggedIn", String.class);
-                        fireLoggedIn.invoke(userDetails.getUsername());
+                        fireLoggedIn.invoke(null, userDetails.getUsername());
                     } catch (Exception e) {
                         logger.log(Level.WARNING, "Failed to invoke fireLoggedIn method", e);
                     }
