@@ -52,6 +52,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,7 +121,7 @@ public class KerberosSSOFilter implements Filter {
             throws IOException, ServletException {
 
         if ((!(request instanceof HttpServletRequest) || !(response instanceof  HttpServletResponse))
-                || containsBypassHeader(request)) {
+                || containsBypassHeader(request) || !containsLoginURL(request)) {
             chain.doFilter(request, response);
             return;
         }
@@ -199,6 +201,32 @@ public class KerberosSSOFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Checks if argument {@link ServletRequest} contains a URL for which we
+     * should attempt a login.
+     * @param request the request to check for URL in
+     * @return true if the request contained a login URL, otherwise false
+     */
+    private static boolean containsLoginURL(ServletRequest request) {
+        /* If the user has directed us to log in for all URLs, then return true. */
+        if (PluginImpl.getInstance().loginAllURLs()) {
+            return true;
+        }
+        if (!(request instanceof HttpServletRequest)) {
+            return false;
+        }
+        HttpServletRequest httpRequest = (HttpServletRequest)request;
+        try {
+            String requestedPath = new URI(httpRequest.getRequestURL().toString()).getPath();
+            return (requestedPath.endsWith("/login"));
+        } catch (URISyntaxException e) {
+            logger.log(Level.WARNING, "Problem parsing URI " + httpRequest.getRequestURL().toString());
+            e.printStackTrace();
+        }
+        /* Consider this a login URL by default */
+        return true;
     }
 
     /**
