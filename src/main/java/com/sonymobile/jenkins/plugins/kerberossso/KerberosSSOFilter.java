@@ -102,7 +102,7 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
-     * Filters every request made to the server do determine and set authentication of the user.
+     * Filters every request made to the server to determine and set authentication of the user.
      * 1. Find out if the user is already authenticated (by checking the securityContext).
      * 2. Otherwise, authenticate the user from his Kerberos ticket and,
      * 3. Set him as authenticated by setting a new securityContext.
