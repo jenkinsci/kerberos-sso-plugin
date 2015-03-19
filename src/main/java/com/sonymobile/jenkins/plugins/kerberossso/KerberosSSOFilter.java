@@ -125,6 +125,13 @@ public class KerberosSSOFilter implements Filter {
         }
 
         HttpServletRequest httpRequest = (HttpServletRequest)request;
+        String userContentPath = httpRequest.getContextPath() + "/userContent";
+
+        if (httpRequest.getRequestURI().startsWith(userContentPath)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         SpnegoHttpServletResponse spnegoHttpResponse = new SpnegoHttpServletResponse(
                 (HttpServletResponse)response);
 

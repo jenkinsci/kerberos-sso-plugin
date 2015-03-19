@@ -44,6 +44,7 @@ import java.security.PrivilegedActionException;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
@@ -135,4 +136,28 @@ public class KerberosFilterTest {
 
         PluginServletFilter.removeFilter(filter);
     }
+    /**
+    * Tests that the user is not logged in if trying to access /userContent/.
+    * @throws Exception if something goes wrong.
+    */
+    @Test
+    public void testIgnoreAuthenticationForUserContent() throws Exception {
+        KerberosSSOFilter filter = new KerberosSSOFilter(EMPTY_MAP, new KerberosAuthenticatorFactory() {
+            @Override
+            public KerberosAuthenticator getInstance(Map<String, String> config)
+                    throws LoginException, IOException, URISyntaxException, PrivilegedActionException {
+                KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
+                when(mockAuthenticator.authenticate(
+                        any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                        .thenReturn(new KerberosPrincipal("mockUser"));
+                return mockAuthenticator;
+            }
+        });
+        PluginServletFilter.addFilter(filter);
+        HtmlPage usercontentPage = rule.createWebClient().goTo("userContent/");
+        assertNotNull(usercontentPage);
+        assertFalse(usercontentPage.asText().contains("mockUser"));
+        PluginServletFilter.removeFilter(filter);
+    }
+
 }
