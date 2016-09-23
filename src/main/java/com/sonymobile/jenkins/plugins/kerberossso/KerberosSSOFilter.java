@@ -97,6 +97,9 @@ public class KerberosSSOFilter implements Filter {
         try {
             authenticator = authenticatorFactory.getInstance(config);
         } catch (Exception e) {
+            // Jenkins does not report stacktrace here in error.jelly
+            // TODO remove after https://github.com/jenkinsci/jenkins/pull/2555
+            logger.log(Level.WARNING, "Unable to initialize " + getClass().getSimpleName(), e);
             throw new ServletException(e);
         }
     }
@@ -145,6 +148,7 @@ public class KerberosSSOFilter implements Filter {
 
                 String redirect = requestedURL.replaceFirst(
                         requestedDomain, requestedDomain + "." + PluginImpl.getInstance().getRedirect());
+                logger.fine("Redirecting request to " + redirect);
                 spnegoHttpResponse.sendRedirect(redirect);
             }
         }
@@ -158,15 +162,19 @@ public class KerberosSSOFilter implements Filter {
             Principal principal;
 
             try {
+                logger.fine("Authenticating request");
                 principal = authenticator.authenticate(httpRequest, spnegoHttpResponse);
+                if (principal != null) {
+                    logger.log(Level.FINE, "Authenticated principal {0}", principal.getName());
+                }
             } catch (LoginException e) {
                 logger.log(Level.WARNING, "Failed to fetch spnegoPrincipal name for user");
                 chain.doFilter(request, spnegoHttpResponse);
                 return;
             }
 
-            // Expecting negotiation
             if (principal == null) {
+                logger.fine("Expecting negotiation");
                 return;
             }
 

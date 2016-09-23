@@ -150,7 +150,7 @@ public class PluginImpl extends Plugin {
                     || !data.has("allowBasic") || !data.has("allowDelegation")
                     || !data.has("promptNtlm") || !data.has("allowUnsecureBasic")) {
 
-                throw new Descriptor.FormException("Malformed form recieved. Try again.", "enabled");
+                throw new Descriptor.FormException("Malformed form received. Try again.", "enabled");
             }
 
             // Starting with data that needs validation to not break an existing configuration.
