@@ -345,7 +345,7 @@ public class PluginImpl extends Plugin {
         Map<String, String> config = new HashMap<String, String>();
         config.put(SpnegoHttpFilter.Constants.ALLOW_BASIC, String.valueOf(allowBasic));
         config.put(SpnegoHttpFilter.Constants.KRB5_CONF, krb5Location);
-        config.put(SpnegoHttpFilter.Constants.LOGIN_CONF, loginLocation);
+        config.put(SpnegoHttpFilter.Constants.LOGIN_CONF, "file:" + loginLocation);
         config.put(SpnegoHttpFilter.Constants.ALLOW_LOCALHOST, String.valueOf(allowLocalhost));
         config.put(SpnegoHttpFilter.Constants.ALLOW_DELEGATION, String.valueOf(allowDelegation));
         config.put(SpnegoHttpFilter.Constants.ALLOW_UNSEC_BASIC, String.valueOf(allowUnsecureBasic));
