@@ -44,6 +44,7 @@ import java.util.Map;
  * @author Robert Sandell &lt;robert.sandell@sonymobile.com&gt;
  */
 public class SpnegoKerberosAuthenticationFactory implements KerberosAuthenticatorFactory {
+
     @Override
     public KerberosAuthenticator getInstance(final Map<String, String> config)
             throws LoginException, IOException, URISyntaxException, PrivilegedActionException {
@@ -83,7 +84,7 @@ public class SpnegoKerberosAuthenticationFactory implements KerberosAuthenticato
                 throws LoginException, IOException {
 
             SpnegoHttpServletResponse spRes = new SpnegoHttpServletResponse(response);
-            SpnegoPrincipal principal = null;
+            SpnegoPrincipal principal;
             try {
                 principal = spnegoAuthenticator.authenticate(request, spRes);
             } catch (GSSException e) {
