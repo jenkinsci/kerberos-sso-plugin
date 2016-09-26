@@ -39,11 +39,6 @@ form.section(title:"Kerberos Single Sign-On") {
         }
 
         form.section(title:_("Kerberos properties")) {
-            if (my.restartNeeded) {
-                form.entry () {
-                    p(style:"color:red;font-weight:bold", _("RestartNotice"))
-                }
-            }
 
             form.entry(field:"account", title:_("Service Account"), help:location+"/help-service-account.html") {
                 form.textbox(value:my.accountName)

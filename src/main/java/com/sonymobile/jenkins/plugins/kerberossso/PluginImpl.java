@@ -35,6 +35,7 @@ import net.sf.json.JSONObject;
 import net.sourceforge.spnego.SpnegoHttpFilter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
@@ -87,6 +88,14 @@ public class PluginImpl extends Plugin {
     }
 
     /**
+     * Get the filter instance,
+     * @return The filter instance.
+     */
+    /*package for testing*/ @CheckForNull KerberosSSOFilter getFilter() {
+        return filter;
+    }
+
+    /**
      * Starts the plugin. Loads previous configuration if such exists.
      * @throws Exception if the Kerberos filter cannot be added to Jenkins.
      */
@@ -95,8 +104,7 @@ public class PluginImpl extends Plugin {
         load();
         try {
             if (enabled) {
-            this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
-                PluginServletFilter.addFilter(filter);
+                registerFilter();
             }
         } catch (ServletException e) {
             logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
@@ -124,6 +132,15 @@ public class PluginImpl extends Plugin {
             filter.destroy();
             filter = null;
         }
+    }
+
+    /**
+     * Create and attach the filter.
+     * @throws ServletException Unable to add filter.
+     */
+    private void registerFilter() throws ServletException {
+        this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
+        PluginServletFilter.addFilter(filter);
     }
 
     /**
@@ -192,9 +209,7 @@ public class PluginImpl extends Plugin {
             this.allowUnsecureBasic = (Boolean)data.get("allowUnsecureBasic");
 
             removeFilter();
-            this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
-            PluginServletFilter.addFilter(filter);
-
+            registerFilter();
         } else {
             removeFilter();
             enabled = false;
@@ -332,7 +347,9 @@ public class PluginImpl extends Plugin {
     /**
      * Used to determine if Jenkins have to be restarted for the config changes to take place.
      * @return whether Jenkins has to be restarted.
+     * @deprecated Unused
      */
+    @Deprecated
     public boolean isRestartNeeded() {
         return filter != null;
     }
