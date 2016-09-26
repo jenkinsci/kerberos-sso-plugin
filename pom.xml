@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.580</version>
+    <version>1.554</version>
   </parent>
 
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
@@ -63,6 +63,10 @@
       </developer>
   </developers>
 
+    <properties>
+        <powermock.version>1.5.5</powermock.version>
+    </properties>
+
   <dependencies>
       <dependency>
           <groupId>net.sourceforge.spnego</groupId>
@@ -76,9 +80,15 @@
           <scope>test</scope>
       </dependency>
       <dependency>
-          <groupId>org.mockito</groupId>
-          <artifactId>mockito-all</artifactId>
-          <version>1.10.19</version>
+          <groupId>org.powermock</groupId>
+          <artifactId>powermock-module-junit4</artifactId>
+          <version>${powermock.version}</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.powermock</groupId>
+          <artifactId>powermock-api-mockito</artifactId>
+          <version>${powermock.version}</version>
           <scope>test</scope>
       </dependency>
   </dependencies>
