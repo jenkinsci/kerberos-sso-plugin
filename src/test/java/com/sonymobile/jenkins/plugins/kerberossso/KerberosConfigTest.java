@@ -24,7 +24,6 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.junit.Before;
@@ -63,17 +62,6 @@ public class KerberosConfigTest {
     }
 
     /**
-     * Tests if Kerberos SSO plugin block can be expanded.
-     */
-    @Test
-    public void testEnableKerberos() {
-        HtmlElement enabled = currentPage.getElementByName("_.enabled");
-        assertNotNull("Kerberos configuration page missing.", enabled);
-        enabled.fireEvent("click");
-        assertNotNull("Optional block wasn't expanded.", currentPage.getElementByName("_.redirectEnabled"));
-    }
-
-    /**
      * Tests if the PluginImpl class changes attributes if a new config is submitted.
      */
     @Test
@@ -83,16 +71,31 @@ public class KerberosConfigTest {
         String loginConf = getClass().getResource("login.conf").getFile();
 
         HtmlForm form = currentPage.getFormByName("config");
-        assertNotNull(form);
 
-        form.getInputByName("_.loginLocation").setValueAttribute(loginConf);
         form.getInputByName("_.enabled").click();
+        form.getInputByName("_.account").setValueAttribute("account");
+        form.getInputByName("_.password").setValueAttribute("pwd");
+        form.getInputByName("_.loginLocation").setValueAttribute(loginConf);
+        form.getInputByName("_.krb5Location").setValueAttribute("/etc/krb5.conf");
+        form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
+        form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
+
+
+        form.getInputByName("_.allowLocalhost").setAttribute("checked", "true");
+        form.getInputByName("_.allowBasic").removeAttribute("checked");
+        form.getInputByName("_.allowUnsecureBasic").removeAttribute("checked");
+        form.getInputByName("_.allowDelegation").setAttribute("checked", "true");
+        form.getInputByName("_.promptNtlm").removeAttribute("checked");
 
         rule.submit(form);
 
         PluginImpl plugin = PluginImpl.getInstance();
-        boolean wasEnabled = plugin.getEnabled();
-        assertTrue("Plugin wasn't enabled after saving the new config", wasEnabled);
+        assertTrue("Plugin wasn't enabled after saving the new config", plugin.getEnabled());
+        assertEquals("account", plugin.getAccountName());
+        assertEquals("pwd", plugin.getPassword().getPlainText());
         assertEquals(loginConf, plugin.getLoginLocation());
+        assertEquals("/etc/krb5.conf", plugin.getKrb5Location());
+        assertEquals("spnego-server", plugin.getLoginServerModule());
+        assertEquals("spnego-client", plugin.getLoginClientModule());
     }
 }
