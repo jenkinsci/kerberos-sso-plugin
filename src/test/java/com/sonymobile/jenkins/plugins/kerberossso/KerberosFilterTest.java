@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginException;
@@ -90,7 +91,9 @@ public class KerberosFilterTest {
         KerberosSSOFilter filter = getFilter(mockAuthenticator);
         PluginServletFilter.addFilter(filter);
 
-        HtmlPage mainPage = rule.createWebClient().goTo("");
+        WebClient wc = rule.createWebClient();
+        wc.goTo("login");
+        HtmlPage mainPage = wc.goTo("");
 
         assertNotNull(mainPage);
         assertThat(mainPage.asText(), containsString("mockUser"));
@@ -110,7 +113,9 @@ public class KerberosFilterTest {
         KerberosSSOFilter filter = getFilter(mockAuthenticator);
         PluginServletFilter.addFilter(filter);
 
-        HtmlPage mainPage = rule.createWebClient().goTo("");
+        WebClient wc = rule.createWebClient();
+        wc.goTo("login");
+        HtmlPage mainPage = wc.goTo("");
 
         assertNotNull(mainPage);
         assertThat(mainPage.getWebResponse().getContentAsString(), containsString("log in"));

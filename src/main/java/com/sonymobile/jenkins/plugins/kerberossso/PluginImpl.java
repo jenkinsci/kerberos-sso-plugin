@@ -65,6 +65,7 @@ public class PluginImpl extends Plugin {
     private String loginServerModule = "spnego-server";
     private String loginClientModule = "spnego-client";
 
+    private boolean loginAllURLs = false;
     private boolean allowLocalhost = true;
     private boolean allowBasic = true;
     private boolean allowDelegation = false;
@@ -146,9 +147,10 @@ public class PluginImpl extends Plugin {
 
             if (!data.has("account") || !data.has("password") || !data.has("krb5Location")
                     || !data.has("loginLocation") || !data.has("loginServerModule")
-                    || !data.has("loginClientModule") || !data.has("allowLocalhost")
-                    || !data.has("allowBasic") || !data.has("allowDelegation")
-                    || !data.has("promptNtlm") || !data.has("allowUnsecureBasic")) {
+                    || !data.has("loginClientModule") || !data.has("loginAllURLs")
+                    || !data.has("allowLocalhost") || !data.has("allowBasic")
+                    || !data.has("allowDelegation") || !data.has("promptNtlm")
+                    || !data.has("allowUnsecureBasic")) {
 
                 throw new Descriptor.FormException("Malformed form received. Try again.", "enabled");
             }
@@ -185,6 +187,7 @@ public class PluginImpl extends Plugin {
 
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
+            this.loginAllURLs = (Boolean)data.get("loginAllURLs");
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
             this.allowBasic = (Boolean)data.get("allowBasic");
             this.allowDelegation = (Boolean)data.get("allowDelegation");
@@ -287,6 +290,15 @@ public class PluginImpl extends Plugin {
      */
     public String getLoginClientModule() {
         return loginClientModule;
+    }
+
+    /**
+     * Used by groovy for data-binding.
+     * @return whether the user has requested login prompts for all URLs or
+     * just the "/login" one.
+     */
+    public boolean loginAllURLs() {
+        return loginAllURLs;
     }
 
     /**
