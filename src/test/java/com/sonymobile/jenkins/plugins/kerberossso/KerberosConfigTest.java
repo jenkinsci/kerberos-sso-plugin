@@ -26,9 +26,11 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import net.sourceforge.spnego.SpnegoHttpFilter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 import static org.junit.Assert.assertEquals;
@@ -55,9 +57,7 @@ public class KerberosConfigTest {
         r.addStep(new Statement() {
             // Configure
             @Override public void evaluate() throws Throwable {
-                PluginImpl plugin = PluginImpl.getInstance();
-                assertFalse("Plugin already enabled", plugin.getEnabled());
-                assertEquals("Plugin filter inactive", null, plugin.getFilter());
+                checkDisabled();
 
                 HtmlPage currentPage = r.j.createWebClient().goTo("configure");
                 HtmlForm form = currentPage.getFormByName("config");
@@ -79,28 +79,63 @@ public class KerberosConfigTest {
                 r.j.submit(form);
 
                 checkConfig(loginConf);
+                checkEnabled();
             }
         });
         r.addStep(new Statement() {
             // Recheck after restart
             @Override public void evaluate() throws Throwable {
                 checkConfig(loginConf);
+                checkEnabled();
+            }
+        });
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                // Reconfigure disable
+                JenkinsRule.WebClient wc = r.j.createWebClient();
+                HtmlPage currentPage = wc.goTo("configure");
+                HtmlForm form = currentPage.getFormByName("config");
+                form.getInputByName("_.enabled").click();
+                r.j.submit(form);
+
+                checkConfig(loginConf);
+                checkDisabled();
+
+                // Check config update propagated
+                currentPage = wc.goTo("configure");
+                form = currentPage.getFormByName("config");
+                form.getInputByName("_.enabled").click();
+                form.getInputByName("_.krb5Location").setValueAttribute("/foo");
+                r.j.submit(form);
+                KerberosSSOFilter filter = PluginImpl.getInstance().getFilter();
+                assertEquals("/foo", filter.config.get(SpnegoHttpFilter.Constants.KRB5_CONF));
             }
         });
     }
 
     private void checkConfig(String loginConf) {
         PluginImpl plugin = PluginImpl.getInstance();
-        assertTrue("Plugin wasn't enabled after saving the new config", plugin.getEnabled());
-        KerberosSSOFilter filter = plugin.getFilter();
-        assertNotNull("Plugin filter registered", filter);
 
-        assertTrue("Plugin filter active", filter.isActive());
         assertEquals("account", plugin.getAccountName());
         assertEquals("pwd", plugin.getPassword().getPlainText());
         assertEquals(loginConf, plugin.getLoginLocation());
         assertEquals("/etc/krb5.conf", plugin.getKrb5Location());
         assertEquals("spnego-server", plugin.getLoginServerModule());
         assertEquals("spnego-client", plugin.getLoginClientModule());
+    }
+
+    private void checkEnabled() {
+        PluginImpl plugin = PluginImpl.getInstance();
+        assertTrue("Plugin not enabled", plugin.getEnabled());
+        KerberosSSOFilter filter = plugin.getFilter();
+        assertNotNull("Plugin filter registered", filter);
+        assertTrue("Plugin filter active", filter.isActive());
+    }
+
+    private void checkDisabled() {
+        PluginImpl plugin = PluginImpl.getInstance();
+        assertFalse("Plugin enabled", plugin.getEnabled());
+        KerberosSSOFilter filter = plugin.getFilter();
+        assertEquals("Plugin filter registered", null, filter);
     }
 }

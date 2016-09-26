@@ -73,7 +73,7 @@ public class KerberosSSOFilter implements Filter {
 
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
-    private final transient Map<String, String> config;
+    /*package for testing*/ final transient Map<String, String> config;
 
     /** Nonnull until initialized */
     private KerberosAuthenticatorFactory authenticatorFactory;
@@ -97,6 +97,7 @@ public class KerberosSSOFilter implements Filter {
      * @throws ServletException if the SpnegoAuthenticator can't be created. (Something is wrong in the config)
      */
     public void init(FilterConfig filterConfig) throws ServletException {
+        logger.info("Kerberos filter initiated");
         try {
             authenticator = authenticatorFactory.getInstance(config);
         } catch (Exception e) {
