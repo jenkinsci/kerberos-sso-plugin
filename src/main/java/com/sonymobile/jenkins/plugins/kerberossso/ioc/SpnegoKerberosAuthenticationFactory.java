@@ -24,9 +24,9 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso.ioc;
 
-import net.sourceforge.spnego.SpnegoAuthenticator;
-import net.sourceforge.spnego.SpnegoHttpServletResponse;
-import net.sourceforge.spnego.SpnegoPrincipal;
+import org.codelibs.spnego.SpnegoAuthenticator;
+import org.codelibs.spnego.SpnegoHttpServletResponse;
+import org.codelibs.spnego.SpnegoPrincipal;
 import org.ietf.jgss.GSSException;
 
 import javax.security.auth.login.LoginException;

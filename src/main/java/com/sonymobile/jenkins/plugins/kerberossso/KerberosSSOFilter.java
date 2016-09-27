@@ -32,7 +32,7 @@ import hudson.security.SecurityRealm;
 import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
-import net.sourceforge.spnego.SpnegoHttpServletResponse;
+import org.codelibs.spnego.SpnegoHttpServletResponse;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;

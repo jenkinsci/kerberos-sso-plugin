@@ -26,7 +26,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import net.sourceforge.spnego.SpnegoHttpFilter;
+import org.codelibs.spnego.SpnegoHttpFilter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.model.Statement;

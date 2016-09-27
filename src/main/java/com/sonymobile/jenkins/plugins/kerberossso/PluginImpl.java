@@ -32,7 +32,7 @@ import hudson.util.PluginServletFilter;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import net.sourceforge.spnego.SpnegoHttpFilter;
+import org.codelibs.spnego.SpnegoHttpFilter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
