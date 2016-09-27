@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.Principal;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -73,8 +73,11 @@ public class KerberosSSOFilter implements Filter {
 
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
-    private transient Map<String, String> config = new HashMap<String, String>();
+    /*package for testing*/ final transient Map<String, String> config;
+
+    /** Nonnull until initialized */
     private KerberosAuthenticatorFactory authenticatorFactory;
+    /** Nonnull after initialized and before destroyed */
     private KerberosAuthenticator authenticator;
 
     /**
@@ -84,7 +87,7 @@ public class KerberosSSOFilter implements Filter {
      *                             in the init method.
      */
     public KerberosSSOFilter(Map<String, String> config, KerberosAuthenticatorFactory authenticatorFactory) {
-        this.config = config;
+        this.config = Collections.unmodifiableMap(config);
         this.authenticatorFactory = authenticatorFactory;
     }
 
@@ -94,6 +97,7 @@ public class KerberosSSOFilter implements Filter {
      * @throws ServletException if the SpnegoAuthenticator can't be created. (Something is wrong in the config)
      */
     public void init(FilterConfig filterConfig) throws ServletException {
+        logger.info("Kerberos filter initiated");
         try {
             authenticator = authenticatorFactory.getInstance(config);
         } catch (Exception e) {
@@ -102,6 +106,16 @@ public class KerberosSSOFilter implements Filter {
             logger.log(Level.WARNING, "Unable to initialize " + getClass().getSimpleName(), e);
             throw new ServletException(e);
         }
+        authenticatorFactory = null;
+    }
+
+    /**
+     * The filter is used by the container.
+     *
+     * @return true if used by servlet container.
+     */
+    /*package*/ boolean isActive() {
+        return authenticator != null && authenticatorFactory == null;
     }
 
     /**
