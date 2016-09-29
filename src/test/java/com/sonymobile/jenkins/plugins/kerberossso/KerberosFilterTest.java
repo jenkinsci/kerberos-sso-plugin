@@ -27,11 +27,15 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
+import hudson.FilePath;
 import hudson.util.PluginServletFilter;
+import org.apache.commons.io.IOUtils;
+import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
@@ -41,12 +45,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.PrivilegedActionException;
 import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
@@ -73,6 +79,10 @@ public class KerberosFilterTest {
     @Rule
     public JenkinsRule rule = new JenkinsRule();
 
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
+    // Reference to filter to remove after test
     private KerberosSSOFilter filter;
 
     /**
@@ -125,6 +135,27 @@ public class KerberosFilterTest {
         HtmlPage usercontentPage = rule.createWebClient().goTo("userContent/");
         assertNotNull(usercontentPage);
         assertFalse(usercontentPage.asText().contains("mockUser"));
+    }
+
+    @Test
+    public void skipFilterWhenCliUsed() throws Exception {
+        rejectAuthentication();
+        URL jar = rule.jenkins.servletContext.getResource("/WEB-INF/jenkins-cli.jar");
+        FilePath cliJar = new FilePath(tmp.getRoot()).child("cli.jar");
+        cliJar.copyFrom(jar);
+
+        Process start = new ProcessBuilder(
+                JavaEnvUtils.getJreExecutable("java"),
+                "-jar", cliJar.getRemote(),
+                "-s", rule.getURL().toExternalForm(),
+                "help"
+        ).start();
+
+        String err = IOUtils.toString(start.getErrorStream());
+        assertThat(err, containsString("who-am-i"));
+        assertThat(err, containsString("Reports your credential and permissions"));
+
+        assertEquals(err, 0, start.waitFor());
     }
 
     private void rejectAuthentication() throws LoginException, IOException, ServletException {
