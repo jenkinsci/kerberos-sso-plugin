@@ -28,6 +28,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.util.PluginServletFilter;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginException;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -54,9 +56,11 @@ import static org.mockito.Mockito.when;
 
 /**
  * Testing the filter functionality of the Kerberos Single Sign-on plugin.
+ *
  * The tests uses mockito to mock a SPNEGO authenticator. This is because
  * whether the authenticator works or not is up to each setup and does not
  * depend on the code in this plugin.
+ *
  * @author Joakim Ahle &lt;joakim.ahle@sonyericsson.com&gt;
  * @author Fredrik Persson &lt;fredrik6.persson@sonyericsson.com&gt;
  */
@@ -69,6 +73,8 @@ public class KerberosFilterTest {
     @Rule
     public JenkinsRule rule = new JenkinsRule();
 
+    private KerberosSSOFilter filter;
+
     /**
      * Sets up the tests by creating a SecurityRealm.
      */
@@ -78,24 +84,23 @@ public class KerberosFilterTest {
         rule.jenkins.setSecurityRealm(realm);
     }
 
+    @After
+    public void tearDown() throws ServletException {
+        if (filter != null) {
+            PluginServletFilter.removeFilter(filter);
+        }
+    }
+
     /**
      * Tests that the user is logged in if authentication succeeds.
      */
     @Test
     public void testSuccessfullyAuthenticateUser() throws Exception {
-        final KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
-        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
-                .thenReturn(new KerberosPrincipal("mockUser@TEST.COM"))
-        ;
-        KerberosSSOFilter filter = getFilter(mockAuthenticator);
-        PluginServletFilter.addFilter(filter);
+        fakePrincipal("mockUser@TEST.COM");
 
         HtmlPage mainPage = rule.createWebClient().goTo("");
-
         assertNotNull(mainPage);
         assertThat(mainPage.asText(), containsString("mockUser"));
-
-        PluginServletFilter.removeFilter(filter);
     }
 
     /**
@@ -103,19 +108,11 @@ public class KerberosFilterTest {
      */
     @Test
     public void testUnsuccessfulAuthentication() throws Exception {
-        KerberosAuthenticator mockAuthenticator =  mock(KerberosAuthenticator.class);
-        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
-                .thenThrow(new LoginException())
-        ;
-        KerberosSSOFilter filter = getFilter(mockAuthenticator);
-        PluginServletFilter.addFilter(filter);
+        rejectAuthentication();
 
         HtmlPage mainPage = rule.createWebClient().goTo("");
-
         assertNotNull(mainPage);
         assertThat(mainPage.getWebResponse().getContentAsString(), containsString("log in"));
-
-        PluginServletFilter.removeFilter(filter);
     }
 
     /**
@@ -123,26 +120,37 @@ public class KerberosFilterTest {
     */
     @Test
     public void testIgnoreAuthenticationForUserContent() throws Exception {
-        KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
-        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
-                .thenReturn(new KerberosPrincipal("mockUser@TEST.COM"))
-        ;
-        KerberosSSOFilter filter = getFilter(mockAuthenticator);
-        PluginServletFilter.addFilter(filter);
+        fakePrincipal("mockUser@TEST.COM");
 
         HtmlPage usercontentPage = rule.createWebClient().goTo("userContent/");
         assertNotNull(usercontentPage);
         assertFalse(usercontentPage.asText().contains("mockUser"));
-        PluginServletFilter.removeFilter(filter);
     }
 
-    private KerberosSSOFilter getFilter(final KerberosAuthenticator mockAuthenticator) {
-        return new KerberosSSOFilter(Collections.<String, String>emptyMap(), new KerberosAuthenticatorFactory() {
+    private void rejectAuthentication() throws LoginException, IOException, ServletException {
+        KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
+        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                .thenThrow(new LoginException())
+        ;
+        registerFilter(mockAuthenticator);
+    }
+
+    private void fakePrincipal(String principal) throws LoginException, IOException, ServletException {
+        KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
+        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                .thenReturn(new KerberosPrincipal(principal))
+        ;
+        registerFilter(mockAuthenticator);
+    }
+
+    private void registerFilter(final KerberosAuthenticator mockAuthenticator) throws ServletException {
+        filter = new KerberosSSOFilter(Collections.<String, String>emptyMap(), new KerberosAuthenticatorFactory() {
             @Override
             public KerberosAuthenticator getInstance(Map<String, String> config)
                     throws LoginException, IOException, URISyntaxException, PrivilegedActionException {
                 return mockAuthenticator;
             }
         });
+        PluginServletFilter.addFilter(filter);
     }
 }
