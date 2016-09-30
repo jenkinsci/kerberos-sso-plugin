@@ -64,6 +64,10 @@ form.section(title:"Kerberos Single Sign-On") {
                 form.textbox(value:my.loginClientModule)
             }
 
+            form.entry(title:_("Login All URLs"), help:location+"/help-login-all-urls.html") {
+                form.checkbox(field: "loginAllURLs", checked:my.loginAllURLs)
+            }
+
             form.entry(title:_("Allow Localhost"), help:location+"/help-allow-localhost.html") {
                 form.checkbox(field: "allowLocalhost", checked:my.allowLocalhost)
             }

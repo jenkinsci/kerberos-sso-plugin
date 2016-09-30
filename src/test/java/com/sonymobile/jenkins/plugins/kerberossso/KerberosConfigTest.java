@@ -70,6 +70,7 @@ public class KerberosConfigTest {
                 form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
                 form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
 
+                form.getInputByName("_.loginAllURLs").removeAttribute("checked");
                 form.getInputByName("_.allowLocalhost").setAttribute("checked", "true");
                 form.getInputByName("_.allowBasic").removeAttribute("checked");
                 form.getInputByName("_.allowUnsecureBasic").removeAttribute("checked");
@@ -83,14 +84,11 @@ public class KerberosConfigTest {
             }
         });
         r.addStep(new Statement() {
-            // Recheck after restart
             @Override public void evaluate() throws Throwable {
+                // Recheck after restart
                 checkConfig(loginConf);
                 checkEnabled();
-            }
-        });
-        r.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+
                 // Reconfigure disable
                 JenkinsRule.WebClient wc = r.j.createWebClient();
                 HtmlPage currentPage = wc.goTo("configure");
@@ -122,6 +120,13 @@ public class KerberosConfigTest {
         assertEquals("/etc/krb5.conf", plugin.getKrb5Location());
         assertEquals("spnego-server", plugin.getLoginServerModule());
         assertEquals("spnego-client", plugin.getLoginClientModule());
+
+        assertFalse(plugin.getLoginAllURLs());
+        assertTrue(plugin.isAllowLocalhost());
+        assertFalse(plugin.isAllowBasic());
+        assertFalse(plugin.isAllowUnsecureBasic());
+        assertTrue(plugin.isAllowDelegation());
+        assertFalse(plugin.isPromptNtlm());
     }
 
     private void checkEnabled() {

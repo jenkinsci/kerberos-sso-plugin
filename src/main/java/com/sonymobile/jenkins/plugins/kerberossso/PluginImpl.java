@@ -33,6 +33,8 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.codelibs.spnego.SpnegoHttpFilter;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
@@ -66,6 +68,7 @@ public class PluginImpl extends Plugin {
     private String loginServerModule = "spnego-server";
     private String loginClientModule = "spnego-client";
 
+    private boolean loginAllURLs = false;
     private boolean allowLocalhost = true;
     private boolean allowBasic = true;
     private boolean allowDelegation = false;
@@ -163,9 +166,10 @@ public class PluginImpl extends Plugin {
 
             if (!data.has("account") || !data.has("password") || !data.has("krb5Location")
                     || !data.has("loginLocation") || !data.has("loginServerModule")
-                    || !data.has("loginClientModule") || !data.has("allowLocalhost")
-                    || !data.has("allowBasic") || !data.has("allowDelegation")
-                    || !data.has("promptNtlm") || !data.has("allowUnsecureBasic")) {
+                    || !data.has("loginClientModule") || !data.has("loginAllURLs")
+                    || !data.has("allowLocalhost") || !data.has("allowBasic")
+                    || !data.has("allowDelegation") || !data.has("promptNtlm")
+                    || !data.has("allowUnsecureBasic")) {
 
                 throw new Descriptor.FormException("Malformed form received. Try again.", "enabled");
             }
@@ -202,6 +206,7 @@ public class PluginImpl extends Plugin {
 
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
+            this.loginAllURLs = (Boolean)data.get("loginAllURLs");
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
             this.allowBasic = (Boolean)data.get("allowBasic");
             this.allowDelegation = (Boolean)data.get("allowDelegation");
@@ -236,6 +241,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether the Filter is currently enabled or not.
      */
+    @Restricted(NoExternalUse.class)
     public boolean getEnabled() {
         return enabled;
     }
@@ -244,6 +250,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth account.
      */
+    @Restricted(NoExternalUse.class)
     public String getAccountName() {
         return accountName;
     }
@@ -252,6 +259,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth password as a secret.
      */
+    @Restricted(NoExternalUse.class)
     public Secret getPassword() {
         return password;
     }
@@ -260,6 +268,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether the user has checked domain redirection or not.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isRedirectEnabled() {
         return redirectEnabled;
     }
@@ -268,6 +277,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current domain to redirect to, if redirect is enabled.
      */
+    @Restricted(NoExternalUse.class)
     public String getRedirect() {
         return redirect;
     }
@@ -276,6 +286,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current location of the krb5.conf file.
      */
+    @Restricted(NoExternalUse.class)
     public String getKrb5Location() {
         return krb5Location;
     }
@@ -284,6 +295,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current location of the login.conf file.
      */
+    @Restricted(NoExternalUse.class)
     public String getLoginLocation() {
         return loginLocation;
     }
@@ -292,6 +304,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current Login-server module.
      */
+    @Restricted(NoExternalUse.class)
     public String getLoginServerModule() {
         return loginServerModule;
     }
@@ -300,14 +313,26 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current Login-client module.
      */
+    @Restricted(NoExternalUse.class)
     public String getLoginClientModule() {
         return loginClientModule;
     }
 
     /**
      * Used by groovy for data-binding.
+     * @return whether the user has requested login prompts for all URLs or
+     * just the "/login" one.
+     */
+    @Restricted(NoExternalUse.class)
+    public boolean getLoginAllURLs() {
+        return loginAllURLs;
+    }
+
+    /**
+     * Used by groovy for data-binding.
      * @return whether Localhost should be allowed without authentication or not.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isAllowLocalhost() {
         return allowLocalhost;
     }
@@ -316,6 +341,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether unsecure basic should be used if Kerberos fails.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isAllowUnsecureBasic() {
         return allowUnsecureBasic;
     }
@@ -324,6 +350,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether NTLM users should be prompted to use basic authentication.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isPromptNtlm() {
         return promptNtlm;
     }
@@ -332,6 +359,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether servlet delegation should be used.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isAllowDelegation() {
         return allowDelegation;
     }
@@ -340,6 +368,7 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether Basic authentication should be used if Kerberos fails.
      */
+    @Restricted(NoExternalUse.class)
     public boolean isAllowBasic() {
         return allowBasic;
     }

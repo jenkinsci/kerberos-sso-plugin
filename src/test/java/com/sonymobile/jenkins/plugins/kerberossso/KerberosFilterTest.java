@@ -39,6 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginException;
@@ -112,8 +113,12 @@ public class KerberosFilterTest {
     public void testSuccessfullyAuthenticateUser() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
-        HtmlPage mainPage = rule.createWebClient().goTo("");
-        assertNotNull(mainPage);
+        WebClient wc = rule.createWebClient();
+        HtmlPage mainPage = wc.goTo("");
+        assertThat(mainPage.asText(), not(containsString("mockUser")));
+
+        wc.goTo("login");
+        mainPage = wc.goTo("");
         assertThat(mainPage.asText(), containsString("mockUser"));
     }
 
@@ -124,9 +129,13 @@ public class KerberosFilterTest {
     public void testUnsuccessfulAuthentication() throws Exception {
         rejectAuthentication();
 
-        HtmlPage mainPage = rule.createWebClient().goTo("");
-        assertNotNull(mainPage);
-        assertThat(mainPage.getWebResponse().getContentAsString(), containsString("log in"));
+        WebClient wc = rule.createWebClient();
+        HtmlPage mainPage = wc.goTo("");
+        assertThat(mainPage.asText(), containsString("log in"));
+
+        wc.goTo("login");
+        mainPage = wc.goTo("");
+        assertThat(mainPage.asText(), containsString("mockUser"));
     }
 
     /**
