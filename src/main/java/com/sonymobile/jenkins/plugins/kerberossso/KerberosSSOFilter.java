@@ -135,15 +135,18 @@ public class KerberosSSOFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if ((!(request instanceof HttpServletRequest) || !(response instanceof  HttpServletResponse))
-                || containsBypassHeader(request) || !containsLoginURL(request)) {
+        if (!(request instanceof HttpServletRequest && response instanceof  HttpServletResponse)) {
             chain.doFilter(request, response);
             return;
         }
 
         HttpServletRequest httpRequest = (HttpServletRequest)request;
-        String userContentPath = httpRequest.getContextPath() + "/userContent";
+        if (containsBypassHeader(httpRequest) || !containsLoginURL(httpRequest)) {
+            chain.doFilter(request, response);
+            return;
+        }
 
+        String userContentPath = httpRequest.getContextPath() + "/userContent";
         if (httpRequest.getRequestURI().startsWith(userContentPath)) {
             chain.doFilter(request, response);
             return;
@@ -225,25 +228,22 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
-     * Checks if argument {@link ServletRequest} contains a URL for which we
-     * should attempt a login.
+     * Checks if request contains a URL for which we should attempt a login.
+     *
      * @param request the request to check for URL in
      * @return true if the request contained a login URL, otherwise false
      */
-    private static boolean containsLoginURL(ServletRequest request) {
+    private static boolean containsLoginURL(HttpServletRequest request) {
         /* If the user has directed us to log in for all URLs, then return true. */
-        if (PluginImpl.getInstance().loginAllURLs()) {
+        if (PluginImpl.getInstance().getLoginAllURLs()) {
             return true;
         }
-        if (!(request instanceof HttpServletRequest)) {
-            return false;
-        }
-        HttpServletRequest httpRequest = (HttpServletRequest)request;
         try {
-            String requestedPath = new URI(httpRequest.getRequestURL().toString()).getPath();
+            // TODO this will request auth for every url that ends with 'login' - such a job named 'login'
+            String requestedPath = new URI(request.getRequestURL().toString()).getPath();
             return (requestedPath.endsWith("/login"));
         } catch (URISyntaxException e) {
-            logger.log(Level.WARNING, "Problem parsing URI " + httpRequest.getRequestURL().toString());
+            logger.log(Level.WARNING, "Problem parsing URI " + request.getRequestURL().toString());
             e.printStackTrace();
         }
         /* Consider this a login URL by default */
@@ -251,15 +251,13 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
-     * Checks if argument {@link ServletRequest} contains a bypass header.
+     * Checks if request contains a bypass header.
+     *
      * @param request the request to check for header in
      * @return true if the request contained a bypass header, otherwise false
      */
-    private static boolean containsBypassHeader(ServletRequest request) {
-        if (!(request instanceof HttpServletRequest)) {
-            return false;
-        }
-        return ((HttpServletRequest)request).getHeader(BYPASS_HEADER) != null;
+    private static boolean containsBypassHeader(HttpServletRequest request) {
+        return request.getHeader(BYPASS_HEADER) != null;
     }
 
     /**
