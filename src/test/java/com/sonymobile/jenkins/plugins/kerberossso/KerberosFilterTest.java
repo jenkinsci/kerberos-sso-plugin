@@ -29,6 +29,8 @@ import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.FilePath;
 import hudson.util.PluginServletFilter;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.After;
@@ -52,6 +54,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -80,6 +83,7 @@ public class KerberosFilterTest {
     public JenkinsRule rule = new JenkinsRule();
 
     @Rule
+    // CS IGNORE VisibilityModifier FOR NEXT 1 LINES. REASON: Mocks tests.
     public TemporaryFolder tmp = new TemporaryFolder();
 
     // Reference to filter to remove after test
@@ -156,6 +160,26 @@ public class KerberosFilterTest {
         assertThat(err, containsString("Reports your credential and permissions"));
 
         assertEquals(err, 0, start.waitFor());
+    }
+
+    @Test
+    public void skipFilterWhenBypassHeaderProvided() throws Exception {
+        fakePrincipal("mockUser@TEST.COM");
+        HttpClient client = new HttpClient();
+
+        GetMethod get = new GetMethod(rule.getURL().toExternalForm());
+        client.executeMethod(get);
+        String out = get.getResponseBodyAsString();
+        assertThat(out, containsString("mockUser"));
+        assertThat(out, not(containsString("log in")));
+
+        client = new HttpClient();
+        get = new GetMethod(rule.getURL().toExternalForm());
+        get.setRequestHeader(KerberosSSOFilter.BYPASS_HEADER, ".");
+        client.executeMethod(get);
+        out = get.getResponseBodyAsString();
+        assertThat(out, not(containsString("mockUser")));
+        assertThat(out, containsString("log in"));
     }
 
     private void rejectAuthentication() throws LoginException, IOException, ServletException {
