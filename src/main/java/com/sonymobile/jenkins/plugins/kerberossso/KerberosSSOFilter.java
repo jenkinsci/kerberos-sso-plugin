@@ -29,7 +29,6 @@ import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFacto
 import hudson.Functions;
 import hudson.security.ACL;
 import hudson.security.SecurityRealm;
-import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import org.codelibs.spnego.SpnegoHttpServletResponse;
@@ -50,7 +49,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Collections;
