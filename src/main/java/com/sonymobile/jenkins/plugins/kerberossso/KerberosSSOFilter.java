@@ -201,21 +201,15 @@ public class KerberosSSOFilter implements Filter {
             try {
                 SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
                 UserDetails userDetails = realm.loadUserByUsername(principalName);
+                String username = userDetails.getUsername();
                 Authentication authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails.getUsername(),
+                        username,
                         userDetails.getPassword(),
                         userDetails.getAuthorities());
 
                 ACL.impersonate(authToken);
-                if (Jenkins.getVersion().isNewerThan(new VersionNumber("1.568"))) {
-                    try {
-                        Method fireLoggedIn = SecurityListener.class.getMethod("fireLoggedIn", String.class);
-                        fireLoggedIn.invoke(null, userDetails.getUsername());
-                    } catch (Exception e) {
-                        logger.log(Level.WARNING, "Failed to invoke fireLoggedIn method", e);
-                    }
-                }
-                logger.log(Level.FINE, "Authenticated user {0}", userDetails.getUsername());
+                SecurityListener.fireLoggedIn(username);
+                logger.log(Level.FINE, "Authenticated user {0}", username);
             } catch (UsernameNotFoundException e) {
                 logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
             } catch (NullPointerException e) {
