@@ -116,14 +116,14 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setLoginAllURLs(true);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), authorized());
+        assertThat(wc.goTo("whoAmI").asText(), authenticated());
 
         PluginImpl.getInstance().setLoginAllURLs(false);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
+        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
 
         wc.goTo("login");
-        assertThat(wc.goTo("whoAmI").asText(), authorized());
+        assertThat(wc.goTo("whoAmI").asText(), authenticated());
     }
 
     /**
@@ -135,12 +135,12 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setLoginAllURLs(true);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
+        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
 
         PluginImpl.getInstance().setLoginAllURLs(false);
         wc = rule.createWebClient();
         wc.goTo("login");
-        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
+        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
     }
 
     /**
@@ -154,7 +154,7 @@ public class KerberosFilterTest {
         PluginImpl.getInstance().setLoginAllURLs(true);
 
         String userContent = rule.createWebClient().goTo("userContent/").asText();
-        assertThat(userContent, containsString("log in"));
+        assertThat(userContent, not(authenticated()));
     }
 
     @Test
@@ -196,18 +196,32 @@ public class KerberosFilterTest {
         GetMethod get = new GetMethod(url);
         client.executeMethod(get);
         String out = get.getResponseBodyAsString();
-        assertThat(out, authorized());
+        assertThat(out, authenticated());
 
         client = new HttpClient();
         get = new GetMethod(url);
         get.setRequestHeader(KerberosSSOFilter.BYPASS_HEADER, ".");
         client.executeMethod(get);
         out = get.getResponseBodyAsString();
-        assertThat(out, not(authorized()));
+        assertThat(out, not(authenticated()));
     }
 
-    private Matcher<String> authorized() {
-        return Matchers.allOf(containsString("mockUser"), not(containsString("anonymous")));
+    @Test
+    public void onlyAuthenticateAtLoginPage() throws Exception {
+        fakePrincipal("mockUser@TEST.COM");
+        PluginImpl.getInstance().setLoginAllURLs(false);
+
+        rule.createFreeStyleProject("login");
+        wc = rule.createWebClient();
+        assertThat(wc.goTo("job/login").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
+
+        wc.goTo("login");
+        assertThat(wc.goTo("").asText(), authenticated());
+    }
+
+    private Matcher<String> authenticated() {
+        return Matchers.allOf(containsString("mockUser"), not(containsString("log in")));
     }
 
     private void rejectAuthentication() throws LoginException, IOException, ServletException {

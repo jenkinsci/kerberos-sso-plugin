@@ -50,8 +50,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
@@ -238,16 +236,8 @@ public class KerberosSSOFilter implements Filter {
         if (PluginImpl.getInstance().getLoginAllURLs()) {
             return true;
         }
-        try {
-            // TODO this will request auth for every url that ends with 'login' - such a job named 'login'
-            String requestedPath = new URI(request.getRequestURL().toString()).getPath();
-            return (requestedPath.endsWith("/login"));
-        } catch (URISyntaxException e) {
-            logger.log(Level.WARNING, "Problem parsing URI " + request.getRequestURL().toString());
-            e.printStackTrace();
-        }
-        /* Consider this a login URL by default */
-        return true;
+
+        return "/login".equals(request.getPathInfo());
     }
 
     /**
