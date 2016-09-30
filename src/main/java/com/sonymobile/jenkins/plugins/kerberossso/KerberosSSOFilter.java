@@ -139,7 +139,7 @@ public class KerberosSSOFilter implements Filter {
         }
 
         HttpServletRequest httpRequest = (HttpServletRequest)request;
-        if (containsBypassHeader(httpRequest) || !containsLoginURL(httpRequest)) {
+        if (skipAuthentication(httpRequest)) {
             chain.doFilter(request, response);
             return;
         }
@@ -226,28 +226,16 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
-     * Checks if request contains a URL for which we should attempt a login.
-     *
-     * @param request the request to check for URL in
-     * @return true if the request contained a login URL, otherwise false
+     * Should the request authentication be skipped.
+     * @param request Handled request.
+     * @return true if request should not be authenticated.
      */
-    private static boolean containsLoginURL(HttpServletRequest request) {
-        /* If the user has directed us to log in for all URLs, then return true. */
-        if (PluginImpl.getInstance().getLoginAllURLs()) {
-            return true;
+    private boolean skipAuthentication(HttpServletRequest request) {
+        if (PluginImpl.getInstance().getAnonymousAccess()) {
+            return !"/login".equals(request.getPathInfo());
+        } else {
+            return request.getHeader(BYPASS_HEADER) != null;
         }
-
-        return "/login".equals(request.getPathInfo());
-    }
-
-    /**
-     * Checks if request contains a bypass header.
-     *
-     * @param request the request to check for header in
-     * @return true if the request contained a bypass header, otherwise false
-     */
-    private static boolean containsBypassHeader(HttpServletRequest request) {
-        return request.getHeader(BYPASS_HEADER) != null;
     }
 
     /**

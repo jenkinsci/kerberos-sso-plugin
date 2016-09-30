@@ -70,7 +70,7 @@ public class KerberosConfigTest {
                 form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
                 form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
 
-                form.getInputByName("_.loginAllURLs").removeAttribute("checked");
+                form.getInputByName("_.anonymousAccess").setAttribute("checked", "true");
                 form.getInputByName("_.allowLocalhost").setAttribute("checked", "true");
                 form.getInputByName("_.allowBasic").removeAttribute("checked");
                 form.getInputByName("_.allowUnsecureBasic").removeAttribute("checked");
@@ -121,7 +121,7 @@ public class KerberosConfigTest {
         assertEquals("spnego-server", plugin.getLoginServerModule());
         assertEquals("spnego-client", plugin.getLoginClientModule());
 
-        assertFalse(plugin.getLoginAllURLs());
+        assertTrue(plugin.getAnonymousAccess());
         assertTrue(plugin.isAllowLocalhost());
         assertFalse(plugin.isAllowBasic());
         assertFalse(plugin.isAllowUnsecureBasic());

@@ -68,7 +68,7 @@ public class PluginImpl extends Plugin {
     private String loginServerModule = "spnego-server";
     private String loginClientModule = "spnego-client";
 
-    private boolean loginAllURLs = false;
+    private boolean anonymousAccess = false;
     private boolean allowLocalhost = true;
     private boolean allowBasic = true;
     private boolean allowDelegation = false;
@@ -166,7 +166,7 @@ public class PluginImpl extends Plugin {
 
             if (!data.has("account") || !data.has("password") || !data.has("krb5Location")
                     || !data.has("loginLocation") || !data.has("loginServerModule")
-                    || !data.has("loginClientModule") || !data.has("loginAllURLs")
+                    || !data.has("loginClientModule") || !data.has("anonymousAccess")
                     || !data.has("allowLocalhost") || !data.has("allowBasic")
                     || !data.has("allowDelegation") || !data.has("promptNtlm")
                     || !data.has("allowUnsecureBasic")) {
@@ -206,7 +206,7 @@ public class PluginImpl extends Plugin {
 
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
-            this.loginAllURLs = (Boolean)data.get("loginAllURLs");
+            this.anonymousAccess = (Boolean)data.get("anonymousAccess");
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
             this.allowBasic = (Boolean)data.get("allowBasic");
             this.allowDelegation = (Boolean)data.get("allowDelegation");
@@ -320,21 +320,20 @@ public class PluginImpl extends Plugin {
 
     /**
      * Used by groovy for data-binding.
-     * @return whether the user has requested login prompts for all URLs or
-     * just the "/login" one.
+     * @return whether the user needs to authenticate on non-login URLs.
      */
     @Restricted(NoExternalUse.class)
-    public boolean getLoginAllURLs() {
-        return loginAllURLs;
+    public boolean getAnonymousAccess() {
+        return anonymousAccess;
     }
 
     /**
      * Set login all URLs.
-     * @param loginAllURLs Enforce login for all urls.
+     * @param anonymousAccess Permit anonymous access.
      */
     @Restricted(NoExternalUse.class)
-    public void setLoginAllURLs(boolean loginAllURLs) {
-        this.loginAllURLs = loginAllURLs;
+    public void setAnonymousAccess(boolean anonymousAccess) {
+        this.anonymousAccess = anonymousAccess;
     }
 
     /**

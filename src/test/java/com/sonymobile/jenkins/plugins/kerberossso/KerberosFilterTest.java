@@ -114,11 +114,11 @@ public class KerberosFilterTest {
     public void testSuccessfullyAuthenticateUser() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
-        PluginImpl.getInstance().setLoginAllURLs(true);
+        PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
         assertThat(wc.goTo("whoAmI").asText(), authenticated());
 
-        PluginImpl.getInstance().setLoginAllURLs(false);
+        PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
         assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
 
@@ -133,11 +133,11 @@ public class KerberosFilterTest {
     public void testUnsuccessfulAuthentication() throws Exception {
         rejectAuthentication();
 
-        PluginImpl.getInstance().setLoginAllURLs(true);
+        PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
         assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
 
-        PluginImpl.getInstance().setLoginAllURLs(false);
+        PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
         wc.goTo("login");
         assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
@@ -151,7 +151,7 @@ public class KerberosFilterTest {
         fakePrincipal("mockUser@TEST.COM");
 
         // This only makes sense when login is required for all URLs
-        PluginImpl.getInstance().setLoginAllURLs(true);
+        PluginImpl.getInstance().setAnonymousAccess(false);
 
         String userContent = rule.createWebClient().goTo("userContent/").asText();
         assertThat(userContent, not(authenticated()));
@@ -160,7 +160,7 @@ public class KerberosFilterTest {
     @Test
     public void skipFilterWhenCliUsed() throws Exception {
         // This only makes sense when login is required for all URLs
-        PluginImpl.getInstance().setLoginAllURLs(true);
+        PluginImpl.getInstance().setAnonymousAccess(false);
 
         // Turn of the jnlp port to make sure this used servlet request
         rule.jenkins.getTcpSlaveAgentListener().shutdown();
@@ -188,7 +188,7 @@ public class KerberosFilterTest {
     public void skipFilterWhenBypassHeaderProvided() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
         // This only makes sense when login is required for all URLs
-        PluginImpl.getInstance().setLoginAllURLs(true);
+        PluginImpl.getInstance().setAnonymousAccess(false);
 
         HttpClient client = new HttpClient();
 
@@ -209,7 +209,7 @@ public class KerberosFilterTest {
     @Test
     public void onlyAuthenticateAtLoginPage() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
-        PluginImpl.getInstance().setLoginAllURLs(false);
+        PluginImpl.getInstance().setAnonymousAccess(true);
 
         rule.createFreeStyleProject("login");
         wc = rule.createWebClient();
@@ -218,6 +218,9 @@ public class KerberosFilterTest {
 
         wc.goTo("login");
         assertThat(wc.goTo("").asText(), authenticated());
+
+        assertThat(wc.goTo("logout").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
     }
 
     private Matcher<String> authenticated() {
