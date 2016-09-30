@@ -24,7 +24,6 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.FilePath;
@@ -33,6 +32,8 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -57,8 +58,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -90,6 +89,8 @@ public class KerberosFilterTest {
     // Reference to filter to remove after test
     private KerberosSSOFilter filter;
 
+    WebClient wc;
+
     /**
      * Sets up the tests by creating a SecurityRealm.
      */
@@ -113,13 +114,16 @@ public class KerberosFilterTest {
     public void testSuccessfullyAuthenticateUser() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
-        WebClient wc = rule.createWebClient();
-        HtmlPage mainPage = wc.goTo("");
-        assertThat(mainPage.asText(), not(containsString("mockUser")));
+        PluginImpl.getInstance().setLoginAllURLs(true);
+        wc = rule.createWebClient();
+        assertThat(wc.goTo("whoAmI").asText(), authorized());
+
+        PluginImpl.getInstance().setLoginAllURLs(false);
+        wc = rule.createWebClient();
+        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
 
         wc.goTo("login");
-        mainPage = wc.goTo("");
-        assertThat(mainPage.asText(), containsString("mockUser"));
+        assertThat(wc.goTo("whoAmI").asText(), authorized());
     }
 
     /**
@@ -129,13 +133,14 @@ public class KerberosFilterTest {
     public void testUnsuccessfulAuthentication() throws Exception {
         rejectAuthentication();
 
-        WebClient wc = rule.createWebClient();
-        HtmlPage mainPage = wc.goTo("");
-        assertThat(mainPage.asText(), containsString("log in"));
+        PluginImpl.getInstance().setLoginAllURLs(true);
+        wc = rule.createWebClient();
+        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
 
+        PluginImpl.getInstance().setLoginAllURLs(false);
+        wc = rule.createWebClient();
         wc.goTo("login");
-        mainPage = wc.goTo("");
-        assertThat(mainPage.asText(), containsString("mockUser"));
+        assertThat(wc.goTo("whoAmI").asText(), not(authorized()));
     }
 
     /**
@@ -145,13 +150,19 @@ public class KerberosFilterTest {
     public void testIgnoreAuthenticationForUserContent() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
-        HtmlPage usercontentPage = rule.createWebClient().goTo("userContent/");
-        assertNotNull(usercontentPage);
-        assertFalse(usercontentPage.asText().contains("mockUser"));
+        // This only makes sense when login is required for all URLs
+        PluginImpl.getInstance().setLoginAllURLs(true);
+
+        String userContent = rule.createWebClient().goTo("userContent/").asText();
+        assertThat(userContent, containsString("log in"));
     }
 
     @Test
     public void skipFilterWhenCliUsed() throws Exception {
+        // This only makes sense when login is required for all URLs
+        PluginImpl.getInstance().setLoginAllURLs(true);
+
+        // Turn of the jnlp port to make sure this used servlet request
         rule.jenkins.getTcpSlaveAgentListener().shutdown();
 
         rejectAuthentication();
@@ -176,21 +187,27 @@ public class KerberosFilterTest {
     @Test
     public void skipFilterWhenBypassHeaderProvided() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
+        // This only makes sense when login is required for all URLs
+        PluginImpl.getInstance().setLoginAllURLs(true);
+
         HttpClient client = new HttpClient();
 
-        GetMethod get = new GetMethod(rule.getURL().toExternalForm());
+        String url = rule.getURL().toExternalForm() + "/whoAmI";
+        GetMethod get = new GetMethod(url);
         client.executeMethod(get);
         String out = get.getResponseBodyAsString();
-        assertThat(out, containsString("mockUser"));
-        assertThat(out, not(containsString("log in")));
+        assertThat(out, authorized());
 
         client = new HttpClient();
-        get = new GetMethod(rule.getURL().toExternalForm());
+        get = new GetMethod(url);
         get.setRequestHeader(KerberosSSOFilter.BYPASS_HEADER, ".");
         client.executeMethod(get);
         out = get.getResponseBodyAsString();
-        assertThat(out, not(containsString("mockUser")));
-        assertThat(out, containsString("log in"));
+        assertThat(out, not(authorized()));
+    }
+
+    private Matcher<String> authorized() {
+        return Matchers.allOf(containsString("mockUser"), not(containsString("anonymous")));
     }
 
     private void rejectAuthentication() throws LoginException, IOException, ServletException {

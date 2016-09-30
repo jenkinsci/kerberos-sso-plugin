@@ -329,6 +329,15 @@ public class PluginImpl extends Plugin {
     }
 
     /**
+     * Set login all URLs.
+     * @param loginAllURLs Enforce login for all urls.
+     */
+    @Restricted(NoExternalUse.class)
+    public void setLoginAllURLs(boolean loginAllURLs) {
+        this.loginAllURLs = loginAllURLs;
+    }
+
+    /**
      * Used by groovy for data-binding.
      * @return whether Localhost should be allowed without authentication or not.
      */
