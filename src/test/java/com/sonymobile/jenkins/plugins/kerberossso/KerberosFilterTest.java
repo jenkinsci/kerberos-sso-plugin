@@ -143,6 +143,8 @@ public class KerberosFilterTest {
 
     @Test
     public void skipFilterWhenCliUsed() throws Exception {
+        rule.jenkins.getTcpSlaveAgentListener().shutdown();
+
         rejectAuthentication();
         URL jar = rule.jenkins.servletContext.getResource("/WEB-INF/jenkins-cli.jar");
         FilePath cliJar = new FilePath(tmp.getRoot()).child("cli.jar");
