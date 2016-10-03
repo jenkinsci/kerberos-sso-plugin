@@ -64,7 +64,7 @@ form.section(title:"Kerberos Single Sign-On") {
                 form.textbox(value:my.loginClientModule)
             }
 
-            form.entry(title:_("Allow anonymous access"), help:location+"/help-login-anonymous-access.html") {
+            form.entry(title:_("Allow anonymous access"), help:location+"/help-anonymous-access.html") {
                 form.checkbox(field: "anonymousAccess", checked:my.anonymousAccess)
             }
 

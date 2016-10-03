@@ -1,4 +1,8 @@
 <div>
-    When this box is checked, the plugin will force users to log in via Kerberos for all URLs they visit. This has the side effect that "log out" is essentially ineffective.<br />
-When this box is unchecked, the plugin will only operate on the "/login" URL. Users have to click the "log in" link at the top of the page in order to authenticate. By leaving this box unchecked, you can permit anonymous users to still have access to Jenkins.
+    Turning this on allows users to proceed with <tt>anonymous</tt> authentication. The plugin reject access of users that
+    are not authenticated otherwise. In order to authenticate, users have to click the "log in" button to provide credentials
+    or let their browser to negotiate.
+</div>
+<div>
+    Make sure the permissions for <tt>anonymous</tt> users are configured correctly before enabling this.
 </div>
