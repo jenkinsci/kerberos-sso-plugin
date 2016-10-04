@@ -58,6 +58,7 @@ import java.util.logging.Logger;
 
 /**
  * Filter that authenticates users using Kerberos SSO.
+ *
  * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
  * @author Fredrik Persson &lt;fredrik6.persson@sonymobile.com&gt;
  */
@@ -138,41 +139,40 @@ public class KerberosSSOFilter implements Filter {
             return;
         }
 
-        HttpServletRequest httpRequest = (HttpServletRequest)request;
+        final HttpServletResponse httpResponse = (HttpServletResponse)response;
+        final HttpServletRequest httpRequest = (HttpServletRequest)request;
+
         if (skipAuthentication(httpRequest)) {
             chain.doFilter(request, response);
             return;
         }
 
-        String userContentPath = httpRequest.getContextPath() + "/userContent";
+        final String userContentPath = httpRequest.getContextPath() + "/userContent";
         if (httpRequest.getRequestURI().startsWith(userContentPath)) {
             chain.doFilter(request, response);
             return;
         }
 
-        SpnegoHttpServletResponse spnegoHttpResponse = new SpnegoHttpServletResponse(
-                (HttpServletResponse)response);
+        final SpnegoHttpServletResponse spnegoHttpResponse = new SpnegoHttpServletResponse(httpResponse);
 
-        if (PluginImpl.getInstance().isRedirectEnabled()
+        final PluginImpl plugin = PluginImpl.getInstance();
+        if (plugin.isRedirectEnabled()
                 && !httpRequest.getLocalAddr().equals(httpRequest.getRemoteAddr())) {
                 // If Local and Remote address is the same, the user is Localhost and shouldn't be redirected.
 
             String requestedDomain = new URL(httpRequest.getRequestURL().toString()).getHost();
             String requestedURL = httpRequest.getRequestURL().toString();
-            if (!requestedDomain.toLowerCase().contains(PluginImpl.getInstance().getRedirect().toLowerCase())) {
+            if (!requestedDomain.toLowerCase().contains(plugin.getRedirect().toLowerCase())) {
 
                 String redirect = requestedURL.replaceFirst(
-                        requestedDomain, requestedDomain + "." + PluginImpl.getInstance().getRedirect());
+                        requestedDomain, requestedDomain + "." + plugin.getRedirect());
                 logger.fine("Redirecting request to " + redirect);
                 spnegoHttpResponse.sendRedirect(redirect);
             }
         }
 
-        // A user is "always" authenticated by Jenkins as anonymous when not authenticated in any other way.
-        if (SecurityContextHolder.getContext().getAuthentication() == null
-                || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
-                || Functions.isAnonymous()) {
-            Functions.advertiseHeaders((HttpServletResponse)response); //Adds headers for CLI
+        if (!isAuthenticated()) {
+            Functions.advertiseHeaders(httpResponse); // Adds headers for CLI
 
             Principal principal;
 
@@ -199,8 +199,9 @@ public class KerberosSSOFilter implements Filter {
                 principalName = principalName.substring(0, principalName.indexOf("@"));
             }
 
+            final Jenkins jenkins = Jenkins.getInstance();
             try {
-                SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
+                SecurityRealm realm = jenkins.getSecurityRealm();
                 UserDetails userDetails = realm.loadUserByUsername(principalName);
                 String username = userDetails.getUsername();
                 Authentication authToken = new UsernamePasswordAuthenticationToken(
@@ -222,7 +223,26 @@ public class KerberosSSOFilter implements Filter {
             }
         }
 
+        // User is authenticated, do not stay on login page
+        if (isAuthenticated() && isAccessingLoginGateway(httpRequest)) {
+            // After successful negotiation or Basic auth (JENKINS-38687)
+            // The basic authentication is only advertised by KerberosSSOFilter and spnego. It is processed by
+            // jenkins.security.BasicHeaderProcessor so the request enters this filter authenticated already.
+            httpResponse.sendRedirect(httpRequest.getContextPath());
+            return;
+        }
+
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Is current user authenticated.
+     *
+     * @return true if it is.
+     */
+    private boolean isAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated() && !Functions.isAnonymous();
     }
 
     /**
@@ -232,16 +252,26 @@ public class KerberosSSOFilter implements Filter {
      */
     private boolean skipAuthentication(HttpServletRequest request) {
         if (PluginImpl.getInstance().getAnonymousAccess()) {
-            return !"/login".equals(request.getPathInfo());
+            return !isAccessingLoginGateway(request);
         } else {
             return request.getHeader(BYPASS_HEADER) != null;
         }
     }
 
     /**
+     * Is performing explicit authentication.
+     * @param request Handled request.
+     * @return true if request accessing login url for explicit authentication.
+     */
+    private boolean isAccessingLoginGateway(HttpServletRequest request) {
+        return "/login".equals(request.getPathInfo());
+    }
+
+    /**
      * Called if the filter needs to be destroyed.
      */
     public void destroy() {
+        logger.fine("Kerberos filter destroyed");
         if (authenticator != null) {
             authenticator.dispose();
         }

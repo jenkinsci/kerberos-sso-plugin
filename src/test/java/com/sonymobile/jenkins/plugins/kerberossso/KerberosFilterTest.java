@@ -24,9 +24,12 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.FilePath;
+import hudson.remoting.Base64;
+import hudson.security.SecurityRealm;
 import hudson.util.PluginServletFilter;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -56,9 +59,10 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -96,8 +100,7 @@ public class KerberosFilterTest {
      */
     @Before
     public void setUp() {
-        DummySecurityRealm realm = rule.createDummySecurityRealm();
-        rule.jenkins.setSecurityRealm(realm);
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
     }
 
     @After
@@ -111,7 +114,7 @@ public class KerberosFilterTest {
      * Tests that the user is logged in if authentication succeeds.
      */
     @Test
-    public void testSuccessfullyAuthenticateUser() throws Exception {
+    public void successfullyAuthenticateUser() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
         PluginImpl.getInstance().setAnonymousAccess(false);
@@ -130,7 +133,7 @@ public class KerberosFilterTest {
      * Tests that the user is not logged in if authentication is unsuccessful.
      */
     @Test
-    public void testUnsuccessfulAuthentication() throws Exception {
+    public void unsuccessfulAuthentication() throws Exception {
         rejectAuthentication();
 
         PluginImpl.getInstance().setAnonymousAccess(false);
@@ -143,11 +146,22 @@ public class KerberosFilterTest {
         assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
     }
 
+    @Test
+    public void userDoesNotExistInRealm() throws Exception {
+        rule.jenkins.setSecurityRealm(SecurityRealm.NO_AUTHENTICATION);
+        fakePrincipal("mockUser@TEST.COM");
+        PluginImpl.getInstance().setAnonymousAccess(false);
+
+        wc = rule.createWebClient();
+        // Logged as "Username mockUser not registered by Jenkins"
+        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
+    }
+
     /**
     * Tests that the user is not logged in if trying to access /userContent/.
     */
     @Test
-    public void testIgnoreAuthenticationForUserContent() throws Exception {
+    public void ignoreAuthenticationForUserContent() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
 
         // This only makes sense when login is required for all URLs
@@ -157,7 +171,7 @@ public class KerberosFilterTest {
         assertThat(userContent, not(authenticated()));
     }
 
-    @Test
+    @Test // TODO do key auth
     public void skipFilterWhenCliUsed() throws Exception {
         // This only makes sense when login is required for all URLs
         PluginImpl.getInstance().setAnonymousAccess(false);
@@ -216,11 +230,28 @@ public class KerberosFilterTest {
         assertThat(wc.goTo("job/login").asText(), not(authenticated()));
         assertThat(wc.goTo("").asText(), not(authenticated()));
 
-        wc.goTo("login");
+        HtmlPage page = wc.goTo("login");
+        assertThat(page.getWebResponse().getUrl().toExternalForm(), not(endsWith("/login")));
+
         assertThat(wc.goTo("").asText(), authenticated());
 
+        // This does not work for basic auth at least as browser keeps sending the header with password
         assertThat(wc.goTo("logout").asText(), not(authenticated()));
         assertThat(wc.goTo("").asText(), not(authenticated()));
+    }
+
+    @Test
+    public void redirectAfterExplicitBaseAuth() throws Exception {
+        fakePrincipal("this_will_be_ignored");
+        PluginImpl.getInstance().setAnonymousAccess(true);
+
+        wc = rule.createWebClient();
+        String dummyRealmCreds = "mockUser:mockUser";
+        wc.addRequestHeader("Authorization", "Basic " + Base64.encode(dummyRealmCreds.getBytes()));
+
+        HtmlPage page = wc.goTo("login");
+        assertThat(page.asText(), authenticated());
+        assertThat(page.getWebResponse().getUrl(), equalTo(rule.getURL()));
     }
 
     private Matcher<String> authenticated() {
