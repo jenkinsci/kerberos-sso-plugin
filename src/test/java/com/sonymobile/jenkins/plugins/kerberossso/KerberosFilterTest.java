@@ -37,6 +37,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.jenkinsci.main.modules.cli.auth.ssh.UserPropertyImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,6 +51,7 @@ import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -179,23 +181,36 @@ public class KerberosFilterTest {
         // Turn of the jnlp port to make sure this used servlet request
         rule.jenkins.getTcpSlaveAgentListener().shutdown();
 
+        String authorizedKeys = IOUtils.toString(getClass().getResource("KerberosFilterTest/cli-ssh-key.pub"));
+        rule.jenkins.getUser("mockUser").addProperty(new UserPropertyImpl(authorizedKeys));
+        String privateKey = getClass().getResource("KerberosFilterTest/cli-ssh-key").getFile();
+
+        // This is supposed to bypass kerberos
         rejectAuthentication();
+
         URL jar = rule.jenkins.servletContext.getResource("/WEB-INF/jenkins-cli.jar");
         FilePath cliJar = new FilePath(tmp.getRoot()).child("cli.jar");
         cliJar.copyFrom(jar);
+        new File(cliJar.getRemote()).deleteOnExit();
 
-        Process start = new ProcessBuilder(
-                JavaEnvUtils.getJreExecutable("java"),
-                "-jar", cliJar.getRemote(),
-                "-s", rule.getURL().toExternalForm(),
-                "help"
+        String java = JavaEnvUtils.getJreExecutable("java");
+        String jenkinsUrl = rule.getURL().toExternalForm();
+
+        Process cliProcess = new ProcessBuilder(
+                java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey, "who-am-i"
         ).start();
+        int ret = cliProcess.waitFor();
+        String err = IOUtils.toString(cliProcess.getErrorStream());
+        String out = IOUtils.toString(cliProcess.getInputStream());
+        assertThat(err, out, containsString("Authenticated as: mockUser"));
+        assertEquals(err, 0, ret);
 
-        String err = IOUtils.toString(start.getErrorStream());
-        assertThat(err, containsString("who-am-i"));
-        assertThat(err, containsString("Reports your credential and permissions"));
-
-        assertEquals(err, 0, start.waitFor());
+        cliProcess = new ProcessBuilder(java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "who-am-i").start();
+        ret = cliProcess.waitFor();
+        err = IOUtils.toString(cliProcess.getErrorStream());
+        out = IOUtils.toString(cliProcess.getInputStream());
+        assertThat(err, out, containsString("Authenticated as: anonymous"));
+        assertEquals(err, 0, ret);
     }
 
     @Test
