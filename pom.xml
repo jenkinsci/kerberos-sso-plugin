@@ -11,7 +11,7 @@
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
   <artifactId>kerberos-sso</artifactId>
   <packaging>hpi</packaging>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <name>Kerberos SSO plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
 
@@ -219,12 +219,17 @@
         </plugins>
     </reporting>
 
+    <!-- Can be removed once moved to 2.6 parent pom -->
     <distributionManagement>
         <repository>
             <id>maven.jenkins-ci.org</id>
-            <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+            <url>https://repo.jenkins-ci.org/releases/</url>
         </repository>
-    </distributionManagement>
+        <snapshotRepository>
+            <id>maven.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/snapshots/</url>
+        </snapshotRepository>
+   </distributionManagement>
 
     <scm>
         <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
