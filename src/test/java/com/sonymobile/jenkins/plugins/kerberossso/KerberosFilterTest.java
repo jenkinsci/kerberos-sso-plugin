@@ -246,7 +246,7 @@ public class KerberosFilterTest {
         assertThat(wc.goTo("").asText(), not(authenticated()));
 
         HtmlPage page = wc.goTo("login");
-        assertThat(page.getWebResponse().getUrl().toExternalForm(), not(endsWith("/login")));
+        assertThat(page.getWebResponse().getWebRequest().getUrl().toExternalForm(), not(endsWith("/login")));
 
         assertThat(wc.goTo("").asText(), authenticated());
 
@@ -266,7 +266,7 @@ public class KerberosFilterTest {
 
         HtmlPage page = wc.goTo("login");
         assertThat(page.asText(), authenticated());
-        assertThat(page.getWebResponse().getUrl(), equalTo(rule.getURL()));
+        assertThat(page.getWebResponse().getWebRequest().getUrl(), equalTo(rule.getURL()));
     }
 
     private Matcher<String> authenticated() {
