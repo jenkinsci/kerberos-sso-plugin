@@ -282,7 +282,7 @@ public class KerberosFilterTest {
     }
 
     private void fakePrincipal(String principal) throws LoginException, IOException, ServletException {
-        assert principal.contains("@"): "Principal name must have realm specified as system may not be configured with default one";
+        assert principal.contains("@") : "Principal name must have realm specified as system may not be configured with default one";
         KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
         when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
                 .thenReturn(new KerberosPrincipal(principal))
