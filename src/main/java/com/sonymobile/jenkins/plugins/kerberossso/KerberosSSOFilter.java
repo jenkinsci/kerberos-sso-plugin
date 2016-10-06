@@ -27,6 +27,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.Functions;
+import hudson.Util;
 import hudson.security.ACL;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
@@ -225,14 +226,48 @@ public class KerberosSSOFilter implements Filter {
 
         // User is authenticated, do not stay on login page
         if (isAuthenticated() && isAccessingLoginGateway(httpRequest)) {
-            // After successful negotiation or Basic auth (JENKINS-38687)
+            // After successful negotiation or Basic auth (JENKINS-38687).
+
             // The basic authentication is only advertised by KerberosSSOFilter and spnego. It is processed by
             // jenkins.security.BasicHeaderProcessor so the request enters this filter authenticated already.
-            httpResponse.sendRedirect(httpRequest.getContextPath());
+            httpResponse.sendRedirect(getRedirectTarget(httpRequest));
             return;
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Get URL to redirect after successfull explicit authentication.
+     *
+     * @param req The request.
+     * @return The URL.
+     */
+    private String getRedirectTarget(HttpServletRequest req) {
+        final String contextPath = req.getContextPath();
+
+        String from = Util.fixEmptyAndTrim(req.getParameter("from"));
+        // see Jenkins.doLoginEntry
+        if (from != null && from.startsWith("/") && !from.equals("/loginError")) {
+            return contextPath + from;
+        }
+
+// We might need this in case `form` parameter is not enough
+//        final String referrer = req.getHeader(HttpHeaders.REFERER);
+//        if (referrer != null && !referrer.isEmpty()) {
+//            try {
+//                // Use domain relative URL starting with Jenkins context path only to make sure the redirect is within
+//                // the application.
+//                final String referrerPath = new URL(referrer).getPath();
+//                if (referrer.startsWith(contextPath)) return referrerPath;
+//                logger.log(Level.FINER, "Referrer does not point to Jenkins application " + referrer);
+//            } catch (MalformedURLException e) {
+//                logger.log(Level.FINER, "Malformed referrer header " + referrer, e);
+//            }
+//        }
+
+        // Jenkins dashboard otherwise
+        return contextPath;
     }
 
     /**

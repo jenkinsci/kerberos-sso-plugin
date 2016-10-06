@@ -256,17 +256,37 @@ public class KerberosFilterTest {
     }
 
     @Test
-    public void redirectAfterExplicitBaseAuth() throws Exception {
+    public void redirectBackAfterExplicitAuth() throws Exception {
         fakePrincipal("this_will_be_ignored@TEST.COM");
         PluginImpl.getInstance().setAnonymousAccess(true);
 
         wc = rule.createWebClient();
-        String dummyRealmCreds = "mockUser:mockUser";
-        wc.addRequestHeader("Authorization", "Basic " + Base64.encode(dummyRealmCreds.getBytes()));
+        injectDummyCredentials();
+
+        HtmlPage page = wc.goTo("login?from=/whoAmI");
+        assertThat(page.asText(), authenticated());
+        assertThat(
+                page.getWebResponse().getWebRequest().getUrl().toExternalForm(),
+                equalTo(rule.getURL().toExternalForm() + "whoAmI/")
+        );
+    }
+
+    @Test
+    public void redirectToDashboardAfterExplicitAuth() throws Exception {
+        fakePrincipal("this_will_be_ignored@TEST.COM");
+        PluginImpl.getInstance().setAnonymousAccess(true);
+
+        wc = rule.createWebClient();
+        injectDummyCredentials();
 
         HtmlPage page = wc.goTo("login");
         assertThat(page.asText(), authenticated());
         assertThat(page.getWebResponse().getWebRequest().getUrl(), equalTo(rule.getURL()));
+    }
+
+    private void injectDummyCredentials() {
+        String dummyRealmCreds = "mockUser:mockUser";
+        wc.addRequestHeader("Authorization", "Basic " + Base64.encode(dummyRealmCreds.getBytes()));
     }
 
     private Matcher<String> authenticated() {
