@@ -224,6 +224,143 @@ public class PluginImpl extends Plugin {
     }
 
     /**
+     * Set enabled config parameter.
+     * @param enabled value of enabled
+     */
+    @Restricted(NoExternalUse.class)
+    void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * Set accountName config parameter.
+     * @param accountName value of accountName
+     */
+    @Restricted(NoExternalUse.class)
+    void setAccountName(String accountName) {
+        this.accountName = accountName;
+    }
+
+    /**
+     * Set password config parameter.
+     * @param password value of password
+     */
+    @Restricted(NoExternalUse.class)
+    void setPassword(Secret password) {
+        this.password = password;
+    }
+
+    /**
+     * Set redirectEnabled config parameter.
+     * @param redirectEnabled value of redirectEnabled
+     */
+    @Restricted(NoExternalUse.class)
+    void setRedirectEnabled(boolean redirectEnabled) {
+        this.redirectEnabled = redirectEnabled;
+    }
+
+    /**
+     * Set redirect config parameter.
+     * @param redirect value of redirect
+     */
+    @Restricted(NoExternalUse.class)
+    void setRedirect(String redirect) {
+        this.redirect = redirect;
+    }
+
+    /**
+     * Set krb5Location config parameter.
+     * @param krb5Location value of krb5Location
+     */
+    @Restricted(NoExternalUse.class)
+    void setKrb5Location(String krb5Location) {
+        this.krb5Location = krb5Location;
+    }
+
+    /**
+     * Set loginLocation config parameter.
+     * @param loginLocation value of loginLocation
+     */
+    @Restricted(NoExternalUse.class)
+    void setLoginLocation(String loginLocation) {
+        this.loginLocation = loginLocation;
+    }
+
+    /**
+     * Set loginServerModule config parameter.
+     * @param loginServerModule value of loginServerModule
+     */
+    @Restricted(NoExternalUse.class)
+    void setLoginServerModule(String loginServerModule) {
+        this.loginServerModule = loginServerModule;
+    }
+
+    /**
+     * Set loginClientModule config parameter.
+     * @param loginClientModule value of loginClientModule
+     */
+    @Restricted(NoExternalUse.class)
+    void setLoginClientModule(String loginClientModule) {
+        this.loginClientModule = loginClientModule;
+    }
+
+    /**
+     * Set allowLocalhost config parameter.
+     * @param allowLocalhost value of allowLocalhost
+     */
+    @Restricted(NoExternalUse.class)
+    void setAllowLocalhost(boolean allowLocalhost) {
+        this.allowLocalhost = allowLocalhost;
+    }
+
+    /**
+     * Set allowBasic config parameter.
+     * @param allowBasic value of allowBasic
+     */
+    @Restricted(NoExternalUse.class)
+    void setAllowBasic(boolean allowBasic) {
+        this.allowBasic = allowBasic;
+    }
+
+    /**
+     * Set allowDelegation config parameter.
+     * @param allowDelegation value of allowDelegation
+     */
+    @Restricted(NoExternalUse.class)
+    void setAllowDelegation(boolean allowDelegation) {
+        this.allowDelegation = allowDelegation;
+    }
+
+    /**
+     * Set allowUnsecureBasic config parameter.
+     * @param allowUnsecureBasic value of allowUnsecureBasic
+     */
+    @Restricted(NoExternalUse.class)
+    void setAllowUnsecureBasic(boolean allowUnsecureBasic) {
+        this.allowUnsecureBasic = allowUnsecureBasic;
+    }
+
+    /**
+     * Set promptNtlm config parameter.
+     * @param promptNtlm value of promptNtlm
+     */
+    @Restricted(NoExternalUse.class)
+    void setPromptNtlm(boolean promptNtlm) {
+        this.promptNtlm = promptNtlm;
+    }
+
+    /**
+     * Allows for reconfigure if config have been altered programatically.
+     *
+     * @throws ServletException if occurs
+     */
+    @Restricted(NoExternalUse.class)
+    public void reconfigure() throws ServletException {
+        removeFilter();
+        registerFilter();
+    }
+
+    /**
      * Tests and changes the passed loginLocation
      * @param newLoginLocation the new location of login.conf
      * @throws Descriptor.FormException if the file does not exist
