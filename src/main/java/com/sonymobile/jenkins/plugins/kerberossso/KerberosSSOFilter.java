@@ -288,11 +288,22 @@ public class KerberosSSOFilter implements Filter {
      * @return true if request should not be authenticated.
      */
     private boolean skipAuthentication(HttpServletRequest request) {
-        if (PluginImpl.getInstance().getAnonymousAccess()) {
-            return !isAccessingLoginGateway(request);
-        } else {
-            return request.getHeader(BYPASS_HEADER) != null;
+        if (PluginImpl.getInstance().getAnonymousAccess() && !isAccessingLoginGateway(request)) {
+            return true;
         }
+
+        Jenkins jenkins = Jenkins.getInstance();
+        if(jenkins != null) {
+            String rest = request.getPathInfo();
+            for (String name : jenkins.getUnprotectedRootActions()) {
+                if (rest.startsWith("/" + name + "/") || rest.equals("/" + name)) {
+                    logger.log(Level.FINEST, "Authentication not required: Unprotected root action: " + rest);
+                    return true;
+                }
+            }
+        }
+
+        return request.getHeader(BYPASS_HEADER) != null;
     }
 
     /**

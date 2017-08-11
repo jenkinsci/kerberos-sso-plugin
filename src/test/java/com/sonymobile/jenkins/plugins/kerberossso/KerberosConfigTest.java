@@ -143,4 +143,58 @@ public class KerberosConfigTest {
         KerberosSSOFilter filter = plugin.getFilter();
         assertEquals("Plugin filter registered", null, filter);
     }
+
+    /**
+     * Test to verify that changes made programatically
+     * are seen in the UI and are active.
+     * @throws Exception if something goes wrong
+     */
+    @Test
+    public void configProgramatically() throws Exception {
+        final String loginConf = getClass().getResource("login.conf").getFile();
+        r.addStep(new Statement() {
+            // Configure
+            @Override public void evaluate() throws Throwable {
+                checkDisabled();
+
+                HtmlPage currentPage = r.j.createWebClient().goTo("configure");
+                HtmlForm form = currentPage.getFormByName("config");
+
+                form.getInputByName("_.enabled").click();
+                form.getInputByName("_.account").setValueAttribute("account");
+                form.getInputByName("_.password").setValueAttribute("pwd");
+                form.getInputByName("_.loginLocation").setValueAttribute(loginConf);
+                form.getInputByName("_.krb5Location").setValueAttribute("/etc/krb5.conf");
+                form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
+                form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
+
+                form.getInputByName("_.anonymousAccess").setAttribute("checked", "true");
+                form.getInputByName("_.allowLocalhost").setAttribute("checked", "true");
+                form.getInputByName("_.allowBasic").setAttribute("checked", "true");
+                form.getInputByName("_.allowUnsecureBasic").setAttribute("checked", "true");
+                form.getInputByName("_.allowDelegation").setAttribute("checked", "true");
+                form.getInputByName("_.promptNtlm").removeAttribute("checked");
+
+                r.j.submit(form);
+
+                checkEnabled();
+
+                PluginImpl.getInstance().setAllowBasic(true);
+                PluginImpl.getInstance().setAllowLocalhost(false);
+                PluginImpl.getInstance().setAllowUnsecureBasic(false);
+                PluginImpl.getInstance().reconfigure();
+
+                currentPage = r.j.createWebClient().goTo("configure");
+
+                form = currentPage.getFormByName("config");
+                assertTrue("allowBasic not true",
+                        form.getInputByName("_.allowBasic").getAttribute("checked").equals("true"));
+                assertFalse("allowLocalhost not checked",
+                        form.getInputByName("_.allowLocalhost").hasAttribute("checked"));
+                assertFalse("allowUnsecureBasic not checked",
+                        form.getInputByName("_.allowUnsecureBasic").hasAttribute("checked"));
+            }
+        });
+    }
+
 }

@@ -31,6 +31,7 @@ import hudson.FilePath;
 import hudson.remoting.Base64;
 import hudson.security.SecurityRealm;
 import hudson.util.PluginServletFilter;
+import jenkins.model.Jenkins;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
@@ -121,14 +122,14 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), authenticated());
+        assertThat(wc.goTo("").asText(), authenticated());
 
         PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
 
         wc.goTo("login");
-        assertThat(wc.goTo("whoAmI").asText(), authenticated());
+        assertThat(wc.goTo("").asText(), authenticated());
     }
 
     /**
@@ -140,12 +141,12 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
 
         PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
         wc.goTo("login");
-        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
     }
 
     @Test
@@ -156,7 +157,7 @@ public class KerberosFilterTest {
 
         wc = rule.createWebClient();
         // Logged as "Username mockUser not registered by Jenkins"
-        assertThat(wc.goTo("whoAmI").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asText(), not(authenticated()));
     }
 
     /**
@@ -221,7 +222,7 @@ public class KerberosFilterTest {
 
         HttpClient client = new HttpClient();
 
-        String url = rule.getURL().toExternalForm() + "/whoAmI";
+        String url = rule.getURL().toExternalForm() + "/";
         GetMethod get = new GetMethod(url);
         client.executeMethod(get);
         String out = get.getResponseBodyAsString();
@@ -233,6 +234,22 @@ public class KerberosFilterTest {
         client.executeMethod(get);
         out = get.getResponseBodyAsString();
         assertThat(out, not(authenticated()));
+    }
+
+    @Test
+    public void skipFilterWhenNonProtectedRootActions() throws Exception {
+        fakePrincipal("mockUser@TEST.COM");
+        // This only makes sense when login is required for all URLs
+        PluginImpl.getInstance().setAnonymousAccess(false);
+
+        for (String name : Jenkins.getInstance().getUnprotectedRootActions()) {
+            String url = rule.getURL().toExternalForm() + name;
+            HttpClient client = new HttpClient();
+            GetMethod get = new GetMethod(url);
+            client.executeMethod(get);
+            String out = get.getResponseBodyAsString();
+            assertThat("/" + name + " should not require authentication", out, not(authenticated()));
+        }
     }
 
     @Test
