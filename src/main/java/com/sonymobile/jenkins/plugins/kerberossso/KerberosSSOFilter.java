@@ -230,7 +230,9 @@ public class KerberosSSOFilter implements Filter {
 
             // The basic authentication is only advertised by KerberosSSOFilter and spnego. It is processed by
             // jenkins.security.BasicHeaderProcessor so the request enters this filter authenticated already.
-            httpResponse.sendRedirect(getRedirectTarget(httpRequest));
+            String redirectTarget = getRedirectTarget(httpRequest);
+            logger.fine("Redirecting to " + redirectTarget);
+            httpResponse.sendRedirect(redirectTarget);
             return;
         }
 
@@ -238,7 +240,7 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
-     * Get URL to redirect after successfull explicit authentication.
+     * Get URL to redirect after successful explicit authentication.
      *
      * @param req The request.
      * @return The URL.
