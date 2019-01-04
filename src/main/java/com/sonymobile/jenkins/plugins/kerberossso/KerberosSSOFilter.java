@@ -293,7 +293,7 @@ public class KerberosSSOFilter implements Filter {
         }
 
         Jenkins jenkins = Jenkins.getInstance();
-        if(jenkins != null) {
+        if (jenkins != null) {
             String rest = request.getPathInfo();
             for (String name : jenkins.getUnprotectedRootActions()) {
                 if (rest.startsWith("/" + name + "/") || rest.equals("/" + name)) {
