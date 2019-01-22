@@ -301,6 +301,23 @@ public class KerberosFilterTest {
         assertThat(page.getWebResponse().getWebRequest().getUrl(), equalTo(rule.getURL()));
     }
 
+    @Test
+    public void redirectBackWithContextPath() throws Exception {
+        fakePrincipal("this_will_be_ignored@TEST.COM");
+        PluginImpl.getInstance().setAnonymousAccess(true);
+
+        wc = rule.createWebClient();
+        injectDummyCredentials();
+
+        // The test Jenkins already includes /jenkins as the context path so send that in the from
+        HtmlPage page = wc.goTo("login?from=/jenkins/whoAmI");
+        assertThat(page.asText(), authenticated());
+        assertThat(
+                page.getWebResponse().getWebRequest().getUrl().toExternalForm(),
+                equalTo(rule.getURL().toExternalForm() + "whoAmI/")
+        );
+    }
+
     private void injectDummyCredentials() {
         String dummyRealmCreds = "mockUser:mockUser";
         wc.addRequestHeader("Authorization", "Basic " + Base64.encode(dummyRealmCreds.getBytes()));
