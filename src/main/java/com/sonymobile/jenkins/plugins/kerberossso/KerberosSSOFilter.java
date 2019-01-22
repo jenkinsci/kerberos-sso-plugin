@@ -251,6 +251,15 @@ public class KerberosSSOFilter implements Filter {
         String from = Util.fixEmptyAndTrim(req.getParameter("from"));
         // see Jenkins.doLoginEntry
         if (from != null && from.startsWith("/") && !from.equals("/loginError")) {
+            // Imported from hudson.security.AuthenticationProcessingFilter2.determineTargetUrl
+            if (!Util.isSafeToRedirectTo(from))
+                return contextPath; // avoid open redirect
+
+            // Based on code from hudson.security.AuthenticationProcessingFilter2.determineTargetUrl
+            // handles case where 'from' contains Context Path
+            if(from.startsWith(contextPath))
+                return from;
+            
             return contextPath + from;
         }
 
