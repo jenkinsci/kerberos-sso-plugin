@@ -83,11 +83,7 @@ public class PluginImpl extends Plugin {
      */
     public static PluginImpl getInstance() {
         Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins != null) {
-            return jenkins.getPlugin(PluginImpl.class);
-        } else {
-            return null;
-        }
+        return jenkins.getPlugin(PluginImpl.class);
     }
 
     /**

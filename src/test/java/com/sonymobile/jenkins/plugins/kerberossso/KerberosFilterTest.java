@@ -26,13 +26,11 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
-import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.FilePath;
 import hudson.model.User;
 import hudson.remoting.Base64;
 import hudson.security.SecurityRealm;
 import hudson.util.PluginServletFilter;
-import hudson.util.VersionNumber;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
@@ -61,11 +59,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.PrivilegedActionException;
 import java.util.Collections;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -189,12 +184,10 @@ public class KerberosFilterTest {
         // Turn of the jnlp port to make sure this used servlet request
         rule.jenkins.getTcpSlaveAgentListener().shutdown();
 
-        if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.53"))) {
-            // Enable CLI over SSH, it is disabled by default in 2.54+
-            SSHD sshd = rule.jenkins.getDescriptorList(GlobalConfiguration.class).get(SSHD.class);
-            sshd.setPort(0); // random
-            sshd.start();
-        }
+        // Enable
+        SSHD sshd = rule.jenkins.getDescriptorList(GlobalConfiguration.class).get(SSHD.class);
+        sshd.setPort(0); // random
+        sshd.start();
 
         String authorizedKeys = IOUtils.toString(getClass().getResource("KerberosFilterTest/cli-ssh-key.pub"));
         // Ensure user is created
@@ -214,18 +207,11 @@ public class KerberosFilterTest {
         String java = JavaEnvUtils.getJreExecutable("java");
         String jenkinsUrl = rule.getURL().toExternalForm();
 
-        Process cliProcess;
-        if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.53"))) {
-            // The CLI needs the user and to be set to ssh mode in 2.54+
-            cliProcess = new ProcessBuilder(
-                    java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey,
-                        "-user", "mockUser", "-ssh", "who-am-i"
-            ).start();
-        } else {
-            cliProcess = new ProcessBuilder(
-                    java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey, "who-am-i"
-            ).start();
-        }
+        Process cliProcess = new ProcessBuilder(
+                java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey,
+                    "-user", "mockUser", "-ssh", "who-am-i"
+        ).start();
+
         int ret = cliProcess.waitFor();
         String err = IOUtils.toString(cliProcess.getErrorStream());
         String out = IOUtils.toString(cliProcess.getInputStream());
@@ -380,13 +366,7 @@ public class KerberosFilterTest {
     }
 
     private void registerFilter(final KerberosAuthenticator mockAuthenticator) throws ServletException {
-        filter = new KerberosSSOFilter(Collections.<String, String>emptyMap(), new KerberosAuthenticatorFactory() {
-            @Override
-            public KerberosAuthenticator getInstance(Map<String, String> config)
-                    throws LoginException, IOException, URISyntaxException, PrivilegedActionException {
-                return mockAuthenticator;
-            }
-        });
+        filter = new KerberosSSOFilter(Collections.emptyMap(), config -> mockAuthenticator);
         PluginServletFilter.addFilter(filter);
     }
 }
