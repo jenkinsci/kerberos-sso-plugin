@@ -24,7 +24,9 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.codelibs.spnego.SpnegoHttpFilter;
 import org.junit.Rule;
@@ -51,7 +53,7 @@ public class KerberosConfigTest {
      * Tests if the PluginImpl class changes attributes if a new config is submitted.
      */
     @Test
-    public void configRoundtrip() throws Exception {
+    public void configRoundtrip() {
         final String loginConf = getClass().getResource("login.conf").getFile();
 
         r.addStep(new Statement() {
@@ -70,12 +72,12 @@ public class KerberosConfigTest {
                 form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
                 form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
 
-                form.getInputByName("_.anonymousAccess").setAttribute("checked", "true");
-                form.getInputByName("_.allowLocalhost").setAttribute("checked", "true");
-                form.getInputByName("_.allowBasic").removeAttribute("checked");
-                form.getInputByName("_.allowUnsecureBasic").removeAttribute("checked");
-                form.getInputByName("_.allowDelegation").setAttribute("checked", "true");
-                form.getInputByName("_.promptNtlm").removeAttribute("checked");
+                check(form.getInputByName("_.anonymousAccess"), true);
+                check(form.getInputByName("_.allowLocalhost"), true);
+                check(form.getInputByName("_.allowBasic"), false);
+                check(form.getInputByName("_.allowUnsecureBasic"), false);
+                check(form.getInputByName("_.allowDelegation"), true);
+                check(form.getInputByName("_.promptNtlm"), false);
 
                 r.j.submit(form);
 
@@ -85,6 +87,7 @@ public class KerberosConfigTest {
         });
         r.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
+
                 // Recheck after restart
                 checkConfig(loginConf);
                 checkEnabled();
@@ -121,12 +124,12 @@ public class KerberosConfigTest {
         assertEquals("spnego-server", plugin.getLoginServerModule());
         assertEquals("spnego-client", plugin.getLoginClientModule());
 
-        assertTrue(plugin.getAnonymousAccess());
-        assertTrue(plugin.isAllowLocalhost());
-        assertFalse(plugin.isAllowBasic());
-        assertFalse(plugin.isAllowUnsecureBasic());
-        assertTrue(plugin.isAllowDelegation());
-        assertFalse(plugin.isPromptNtlm());
+        assertTrue("Anonymous enabled", plugin.getAnonymousAccess());
+        assertTrue("Localhost enabled", plugin.isAllowLocalhost());
+        assertFalse("Basic disabled", plugin.isAllowBasic());
+        assertFalse("Unsecured basic disabled", plugin.isAllowUnsecureBasic());
+        assertTrue("Delegation allowed", plugin.isAllowDelegation());
+        assertFalse("NTLM disabled", plugin.isPromptNtlm());
     }
 
     private void checkEnabled() {
@@ -147,10 +150,9 @@ public class KerberosConfigTest {
     /**
      * Test to verify that changes made programatically
      * are seen in the UI and are active.
-     * @throws Exception if something goes wrong
      */
     @Test
-    public void configProgramatically() throws Exception {
+    public void configProgrammatically() {
         final String loginConf = getClass().getResource("login.conf").getFile();
         r.addStep(new Statement() {
             // Configure
@@ -197,4 +199,8 @@ public class KerberosConfigTest {
         });
     }
 
+    private static void check(HtmlInput input, boolean checked) {
+        HtmlCheckBoxInput cb = (HtmlCheckBoxInput)input;
+        cb.setChecked(checked);
+    }
 }
