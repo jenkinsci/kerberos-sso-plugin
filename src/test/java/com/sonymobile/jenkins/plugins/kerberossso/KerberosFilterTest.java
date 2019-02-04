@@ -28,17 +28,24 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.FilePath;
+import hudson.model.User;
 import hudson.remoting.Base64;
 import hudson.security.SecurityRealm;
 import hudson.util.PluginServletFilter;
+import hudson.util.VersionNumber;
+import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.jenkinsci.main.modules.cli.auth.ssh.UserPropertyImpl;
+import org.jenkinsci.main.modules.sshd.SSHD;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -182,14 +189,24 @@ public class KerberosFilterTest {
         // Turn of the jnlp port to make sure this used servlet request
         rule.jenkins.getTcpSlaveAgentListener().shutdown();
 
+        if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.53"))) {
+            // Enable CLI over SSH, it is disabled by default in 2.54+
+            SSHD sshd = rule.jenkins.getDescriptorList(GlobalConfiguration.class).get(SSHD.class);
+            sshd.setPort(0); // random
+            sshd.start();
+        }
+
         String authorizedKeys = IOUtils.toString(getClass().getResource("KerberosFilterTest/cli-ssh-key.pub"));
-        rule.jenkins.getUser("mockUser").addProperty(new UserPropertyImpl(authorizedKeys));
+        // Ensure user is created
+        User u = User.get("mockUser", true, Collections.emptyMap());
+        u.addProperty(new UserPropertyImpl(authorizedKeys));
+        rule.configRoundtrip(u);
         String privateKey = getClass().getResource("KerberosFilterTest/cli-ssh-key").getFile();
 
         // This is supposed to bypass kerberos
         rejectAuthentication();
 
-        URL jar = rule.jenkins.servletContext.getResource("/WEB-INF/jenkins-cli.jar");
+        URL jar = rule.jenkins.getJnlpJars("jenkins-cli.jar").getURL();
         FilePath cliJar = new FilePath(tmp.getRoot()).child("cli.jar");
         cliJar.copyFrom(jar);
         new File(cliJar.getRemote()).deleteOnExit();
@@ -197,9 +214,18 @@ public class KerberosFilterTest {
         String java = JavaEnvUtils.getJreExecutable("java");
         String jenkinsUrl = rule.getURL().toExternalForm();
 
-        Process cliProcess = new ProcessBuilder(
-                java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey, "who-am-i"
-        ).start();
+        Process cliProcess;
+        if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.53"))) {
+            // The CLI needs the user and to be set to ssh mode in 2.54+
+            cliProcess = new ProcessBuilder(
+                    java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey,
+                        "-user", "mockUser", "-ssh", "who-am-i"
+            ).start();
+        } else {
+            cliProcess = new ProcessBuilder(
+                    java, "-jar", cliJar.getRemote(), "-s", jenkinsUrl, "-i", privateKey, "who-am-i"
+            ).start();
+        }
         int ret = cliProcess.waitFor();
         String err = IOUtils.toString(cliProcess.getErrorStream());
         String out = IOUtils.toString(cliProcess.getInputStream());
@@ -220,20 +246,22 @@ public class KerberosFilterTest {
         // This only makes sense when login is required for all URLs
         PluginImpl.getInstance().setAnonymousAccess(false);
 
-        HttpClient client = new HttpClient();
+        try (CloseableHttpClient client = HttpClients.createMinimal()) {
+            String url = rule.getURL().toExternalForm() + "/";
+            HttpGet get = new HttpGet(url);
 
-        String url = rule.getURL().toExternalForm() + "/";
-        GetMethod get = new GetMethod(url);
-        client.executeMethod(get);
-        String out = get.getResponseBodyAsString();
-        assertThat(out, authenticated());
+            try (CloseableHttpResponse response = client.execute(get)) {
+                String out = EntityUtils.toString(response.getEntity());
+                assertThat(out, authenticated());
+            }
 
-        client = new HttpClient();
-        get = new GetMethod(url);
-        get.setRequestHeader(KerberosSSOFilter.BYPASS_HEADER, ".");
-        client.executeMethod(get);
-        out = get.getResponseBodyAsString();
-        assertThat(out, not(authenticated()));
+            get = new HttpGet(url);
+            get.addHeader(KerberosSSOFilter.BYPASS_HEADER, ".");
+            try (CloseableHttpResponse response = client.execute(get)) {
+                String out = EntityUtils.toString(response.getEntity());
+                assertThat(out, not(authenticated()));
+            }
+        }
     }
 
     @Test
@@ -242,13 +270,16 @@ public class KerberosFilterTest {
         // This only makes sense when login is required for all URLs
         PluginImpl.getInstance().setAnonymousAccess(false);
 
-        for (String name : Jenkins.getInstance().getUnprotectedRootActions()) {
-            String url = rule.getURL().toExternalForm() + name;
-            HttpClient client = new HttpClient();
-            GetMethod get = new GetMethod(url);
-            client.executeMethod(get);
-            String out = get.getResponseBodyAsString();
-            assertThat("/" + name + " should not require authentication", out, not(authenticated()));
+        try (CloseableHttpClient client = HttpClients.createMinimal()) {
+            for (String name : Jenkins.getInstance().getUnprotectedRootActions()) {
+                String url = rule.getURL().toExternalForm() + name;
+
+                HttpGet get = new HttpGet(url);
+                try (CloseableHttpResponse response = client.execute(get)) {
+                    String out = EntityUtils.toString(response.getEntity());
+                    assertThat("/" + name + " should not require authentication", out, not(authenticated()));
+                }
+            }
         }
     }
 
