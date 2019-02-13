@@ -31,6 +31,7 @@ import hudson.Util;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.SecurityRealm;
+import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import jenkins.security.seed.UserSeedProperty;
@@ -138,7 +139,6 @@ public class KerberosSSOFilter implements Filter {
      * @throws IOException if redirection goes wrong or if another filter in the chain fails.
      * @throws ServletException if the authentication fails.
      */
-    @SuppressRestrictedWarnings(UserSeedProperty.class)
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
@@ -218,19 +218,8 @@ public class KerberosSSOFilter implements Filter {
                         userDetails.getAuthorities());
 
                 ACL.impersonate(authToken);
-                // Adapted from hudson.security.AuthenticationProcessingFilter2
-                HttpSession newSession = httpRequest.getSession();
 
-                if (!UserSeedProperty.DISABLE_USER_SEED) {
-                    User user = User.getById(username, true);
-
-                    UserSeedProperty userSeed = user.getProperty(UserSeedProperty.class);
-                    String sessionSeed = userSeed.getSeed();
-                    newSession.setAttribute(UserSeedProperty.USER_SESSION_SEED, sessionSeed);
-                }
-
-                // This request is in a filter before the Stapler for pre-authentication
-                // for that reason we need to keep the above code that applies the same logic as UserSeedSecurityListener
+                populateUserSeed(httpRequest, username);
                 SecurityListener.fireLoggedIn(username);
                 logger.log(Level.FINE, "Authenticated user {0}", username);
             } catch (UsernameNotFoundException e) {
@@ -257,6 +246,32 @@ public class KerberosSSOFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * This request is in a filter before the Stapler for pre-authentication for that reason we need to keep the code
+     * that applies the same logic as UserSeedSecurityListener.
+     *
+     * @param httpRequest Current request.
+     * @param username Authenticated username.
+     */
+    @SuppressRestrictedWarnings(UserSeedProperty.class)
+    private void populateUserSeed(HttpServletRequest httpRequest, String username) {
+        VersionNumber current = Jenkins.getVersion();
+        if (current.isNewerThan(new VersionNumber("2.150.99")) && current.isOlderThan(new VersionNumber("2.160"))) {
+            // We have to depend on API introduced in 2.150.2 and 1.160 hence we need to skip this for ["2.151", "2.159"]
+            return;
+        }
+
+        // Adapted from hudson.security.AuthenticationProcessingFilter2
+        HttpSession newSession = httpRequest.getSession();
+        if (!UserSeedProperty.DISABLE_USER_SEED) {
+            User user = User.getById(username, true);
+
+            UserSeedProperty userSeed = user.getProperty(UserSeedProperty.class);
+            String sessionSeed = userSeed.getSeed();
+            newSession.setAttribute(UserSeedProperty.USER_SESSION_SEED, sessionSeed);
+        }
     }
 
     /**
