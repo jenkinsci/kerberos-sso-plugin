@@ -28,11 +28,16 @@ import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
 import hudson.Functions;
 import hudson.Util;
+import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.SecurityRealm;
+import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
+import jenkins.security.seed.UserSeedProperty;
+
 import org.codelibs.spnego.SpnegoHttpServletResponse;
+import org.kohsuke.accmod.restrictions.suppressions.SuppressRestrictedWarnings;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -49,6 +54,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
@@ -211,6 +218,8 @@ public class KerberosSSOFilter implements Filter {
                         userDetails.getAuthorities());
 
                 ACL.impersonate(authToken);
+
+                populateUserSeed(httpRequest, username);
                 SecurityListener.fireLoggedIn(username);
                 logger.log(Level.FINE, "Authenticated user {0}", username);
             } catch (UsernameNotFoundException e) {
@@ -240,6 +249,37 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
+     * This request is in a filter before the Stapler for pre-authentication for that reason we need to keep the code
+     * that applies the same logic as UserSeedSecurityListener.
+     *
+     * @param httpRequest Current request.
+     * @param username Authenticated username.
+     */
+    @SuppressRestrictedWarnings(UserSeedProperty.class)
+    private void populateUserSeed(HttpServletRequest httpRequest, String username) {
+        VersionNumber current = Jenkins.getVersion();
+        if (current == null) {
+            logger.warning("Unable to determine current Jenkins version");
+            return;
+        }
+
+        if (current.isNewerThan(new VersionNumber("2.150.99")) && current.isOlderThan(new VersionNumber("2.160"))) {
+            // We have to depend on API introduced in 2.150.2 and 1.160 hence we need to skip this for ["2.151", "2.159"]
+            return;
+        }
+
+        // Adapted from hudson.security.AuthenticationProcessingFilter2
+        HttpSession newSession = httpRequest.getSession();
+        if (!UserSeedProperty.DISABLE_USER_SEED) {
+            User user = User.getById(username, true);
+
+            UserSeedProperty userSeed = user.getProperty(UserSeedProperty.class);
+            String sessionSeed = userSeed.getSeed();
+            newSession.setAttribute(UserSeedProperty.USER_SESSION_SEED, sessionSeed);
+        }
+    }
+
+    /**
      * Get URL to redirect after successful explicit authentication.
      *
      * @param req The request.
@@ -251,6 +291,17 @@ public class KerberosSSOFilter implements Filter {
         String from = Util.fixEmptyAndTrim(req.getParameter("from"));
         // see Jenkins.doLoginEntry
         if (from != null && from.startsWith("/") && !from.equals("/loginError")) {
+            // Imported from hudson.security.AuthenticationProcessingFilter2.determineTargetUrl
+            if (!Util.isSafeToRedirectTo(from)) {
+                return contextPath; // avoid open redirect
+            }
+
+            // Based on code from hudson.security.AuthenticationProcessingFilter2.determineTargetUrl
+            // handles case where 'from' contains Context Path
+            if (from.startsWith(contextPath)) {
+                return from;
+            }
+
             return contextPath + from;
         }
 
