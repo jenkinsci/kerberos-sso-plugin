@@ -82,7 +82,7 @@ import static org.mockito.Mockito.when;
  * @author Joakim Ahle &lt;joakim.ahle@sonyericsson.com&gt;
  * @author Fredrik Persson &lt;fredrik6.persson@sonyericsson.com&gt;
  */
-    public class KerberosFilterTest {
+public class KerberosFilterTest {
 
     /**
      * Jnekins rule instance.
