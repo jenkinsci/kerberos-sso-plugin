@@ -7,3 +7,9 @@ buildPlugin(configurations: [
   [ platform: "linux", jdk: "8", jenkins: "2.150.2" ], // SECURITY-901
   [ platform: "linux", jdk: "11", jenkins: "2.150.2" ]
 ])
+
+node('docker && highmem') {
+    docker.image('jenkins/ath:acceptance-test-harness-1.63').inside {
+        infra.runMaven("-Pselenium -Dmaven.test.failure.ignore -B -Dtest=KerberosSsoTest", "8")
+    }
+}

@@ -48,6 +48,7 @@ import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
 import org.jenkinsci.test.acceptance.po.User;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.model.Statement;
@@ -77,6 +78,7 @@ import static org.junit.Assert.assertEquals;
 @WithPlugins({"kerberos-sso", "mailer"})
 @Category(DockerTest.class)
 @WithDocker
+@Ignore // To run only explicitly
 public class KerberosSsoTest extends AbstractJUnitTest {
     private static final String AUTHORIZED = "Username: user; Password: [PROTECTED]; Authenticated: true; Details: null; Granted Authorities: authenticated";
 
