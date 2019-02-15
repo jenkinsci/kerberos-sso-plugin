@@ -10,6 +10,6 @@ buildPlugin(configurations: [
 
 node('docker && highmem') {
     docker.image('jenkins/ath:acceptance-test-harness-1.63').inside {
-        infra.runMaven("-Pselenium -Dmaven.test.failure.ignore -B -Dtest=KerberosSsoTest", "8")
+        infra.runMaven(["clean", "install", "-Pselenium -Dmaven.test.failure.ignore -B -Dtest=KerberosSsoTest", "8"])
     }
 }
