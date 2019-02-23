@@ -8,11 +8,14 @@ buildPlugin(configurations: [
   [ platform: "linux", jdk: "11", jenkins: "2.150.2" ]
 ])
 
-node('docker && highmem') {
-    docker.image('jenkins/ath:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock --shm-size 2g') {
-        sh """
-            eval \$(vnc.sh)
-            run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Dtest=KerberosSsoTest
-        """
+stage("UI tests") {
+    node('docker && highmem') {
+        checkout scm
+        docker.image('jenkins/ath:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock --shm-size 2g') {
+            sh """
+                eval \$(vnc.sh)
+                run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Dtest=KerberosSsoTest
+            """
+        }
     }
 }
