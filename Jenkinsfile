@@ -14,7 +14,7 @@ stage("UI tests") {
         docker.image('jenkins/ath:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock --shm-size 2g') {
             sh """
                 eval \$(vnc.sh)
-                run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Dtest=KerberosSsoTest
+                run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Ptest-ath
             """
         }
     }

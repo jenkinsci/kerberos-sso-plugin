@@ -78,7 +78,6 @@ import static org.junit.Assert.assertEquals;
 @WithPlugins({"kerberos-sso", "mailer"})
 @Category(DockerTest.class)
 @WithDocker
-@Ignore // To run only explicitly
 public class KerberosSsoTest extends AbstractJUnitTest {
     private static final String AUTHORIZED = "Username: user; Password: [PROTECTED]; Authenticated: true; Details: null; Granted Authorities: authenticated";
 
