@@ -17,5 +17,6 @@ stage("UI tests") {
                 run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Ptest-ath
             """
         }
+        junit '**/target/surefire-reports/**/*.xml'
     }
 }
