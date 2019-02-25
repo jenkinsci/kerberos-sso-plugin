@@ -11,7 +11,8 @@ buildPlugin(configurations: [
 stage("UI tests") {
     node('docker && highmem') {
         checkout scm
-        docker.image('jenkins/ath:acceptance-test-harness-1.65').inside('-v /var/run/docker.sock:/var/run/docker.sock --shm-size 2g') {
+        // TODO switch to jenkins/ath:acceptance-test-harness-1.65+ after https://issues.jenkins-ci.org/browse/INFRA-2022
+        docker.image('jenkins/ath:latest').inside('-v /var/run/docker.sock:/var/run/docker.sock --shm-size 2g') {
             sh """
                 eval \$(vnc.sh)
                 run.sh firefox latest -Dmaven.test.failure.ignore=true -DforkCount=1 -B -Ptest-ath
