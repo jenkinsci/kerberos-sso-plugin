@@ -17,7 +17,18 @@
   <properties>
     <jenkins.version>2.150.2</jenkins.version>
     <java.level>8</java.level>
+    <!-- Skip ATH test by default -->
+    <test>!KerberosSsoTest</test>
   </properties>
+
+  <profiles>
+    <profile>
+      <id>test-ath</id>
+      <properties>
+        <test>KerberosSsoTest</test>
+      </properties>
+    </profile>
+  </profiles>
 
   <developers>
       <developer>
@@ -82,6 +93,7 @@
       <dependency>
           <groupId>junit</groupId>
           <artifactId>junit</artifactId>
+          <version>4.12</version>
           <scope>test</scope>
       </dependency>
       <dependency>
@@ -89,6 +101,58 @@
           <artifactId>mockito-all</artifactId>
           <version>1.10.19</version>
           <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.jenkins-ci</groupId>
+          <artifactId>acceptance-test-harness</artifactId>
+          <version>1.63</version>
+          <scope>test</scope>
+          <exclusions>
+              <exclusion>
+                  <groupId>org.sonatype.sisu</groupId>
+                  <artifactId>sisu-guice</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.seleniumhq.selenium</groupId>
+                  <artifactId>htmlunit-driver</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.jenkins-ci.main</groupId>
+                  <artifactId>remoting</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>commons-codec</groupId>
+                  <artifactId>commons-codec</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.apache.httpcomponents</groupId>
+                  <artifactId>httpclient</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>commons-net</groupId>
+                  <artifactId>commons-net</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>version-number</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>args4j</groupId>
+                  <artifactId>args4j</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>com.github.jnr</groupId>
+                  <artifactId>jnr-unixsocket</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>commons-httpclient</groupId>
+                  <artifactId>commons-httpclient</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>com.github.jnr</groupId>
+                  <artifactId>jnr-ffi</artifactId>
+              </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>org.jenkins-ci.plugins</groupId>
@@ -142,37 +206,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <reuseForks>false</reuseForks>
+                    <environmentVariables>
+                        <!-- Read by ATH -->
+                        <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
+                    </environmentVariables>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
-                <configuration>
-                    <configLocation>swe_checkstyle.xml</configLocation>
-                    <suppressionsLocation>${basedir}/src/checkstyle-suppressions.xml</suppressionsLocation>
-                    <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    <consoleOutput>true</consoleOutput>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>checkstyle</goal>
-                        </goals>
-                        <phase>compile</phase>
-                    </execution>
-                    <execution>
-                        <id>test-check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>test</phase>
-                        <configuration>
-                            <violationSeverity>warning</violationSeverity>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -205,15 +243,6 @@
 
     <reporting>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.11</version>
-                <configuration>
-                    <configLocation>swe_checkstyle.xml</configLocation>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
