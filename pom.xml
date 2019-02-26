@@ -105,7 +105,7 @@
       <dependency>
           <groupId>org.jenkins-ci</groupId>
           <artifactId>acceptance-test-harness</artifactId>
-          <version>1.63</version>
+          <version>1.65</version>
           <scope>test</scope>
           <exclusions>
               <exclusion>
@@ -209,6 +209,8 @@
                     <environmentVariables>
                         <!-- Read by ATH -->
                         <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
+                        <LOCAL_JARS>target/kerberos-sso.hpi</LOCAL_JARS>
+                        <BROWSER>firefox</BROWSER>
                     </environmentVariables>
                 </configuration>
             </plugin>
