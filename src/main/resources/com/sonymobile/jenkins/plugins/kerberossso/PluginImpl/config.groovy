@@ -24,68 +24,71 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso.PluginImpl
 
+import com.sonymobile.jenkins.plugins.kerberossso.PluginImpl
 import lib.FormTagLib
 
 def form = namespace(FormTagLib)
 def location = "/plugin/kerberos-sso/"
 
-form.section(title:"Kerberos Single Sign-On") {
-    form.optionalBlock(title:_("EnablePlugin"), help:location+"/help-overview.html", field:"enabled", checked:my.enabled) {
+PluginImpl p = (PluginImpl) instance
 
-        form.optionalBlock(title:_("RedirectCheck"), help:location+"/help-redirect.html", field:"redirectEnabled", checked:my.redirectEnabled) {
+form.section(title:"Kerberos Single Sign-On") {
+    form.optionalBlock(title:_("EnablePlugin"), field:"enabled", checked:p.enabled) {
+
+        form.optionalBlock(title:_("RedirectCheck"), field:"redirectEnabled", checked:p.redirectEnabled) {
             form.entry(field:"redirect", title:_("RedirectTo")) {
-                form.textbox(value:my.redirect)
+                form.textbox(value:p.redirect)
             }
         }
 
-        form.section(title:_("Kerberos properties")) {
+        form.advanced(title: _("Kerberos properties"), align:"left") {
 
-            form.entry(field:"account", title:_("Service Account"), help:location+"/help-service-account.html") {
-                form.textbox(value:my.accountName)
+            form.entry(field:"account", title:_("Service Account")) {
+                form.textbox(value:p.accountName)
             }
 
             form.entry(field:"password", title:_("Password")) {
-                form.password(value:my.password)
+                form.password(value:p.password)
             }
 
-            form.entry(field: "krb5Location", title:_("Location of krb5.conf"), help:location+"/help-krb5-location.html") {
-                form.textbox(value:my.krb5Location)
+            form.entry(field: "krb5Location", title:_("Location of krb5.conf")) {
+                form.textbox(value:p.krb5Location)
             }
 
-            form.entry(field: "loginLocation", title:_("Location of login.conf"), help:location+"/help-login-location.html") {
-                form.textbox(value:my.loginLocation)
+            form.entry(field: "loginLocation", title:_("Location of login.conf")) {
+                form.textbox(value:p.loginLocation)
             }
 
-            form.entry(field: "loginServerModule", title:_("Login Server Module"), help:location+"/help-server-module.html") {
-                form.textbox(value:my.loginServerModule)
+            form.entry(field: "loginServerModule", title:_("Login Server Module")) {
+                form.textbox(value:p.loginServerModule)
             }
 
-            form.entry(field: "loginClientModule", title:_("Login Client Module"), help:location+"/help-client-module.html") {
-                form.textbox(value:my.loginClientModule)
+            form.entry(field: "loginClientModule", title:_("Login Client Module")) {
+                form.textbox(value:p.loginClientModule)
             }
 
-            form.entry(title:_("Allow anonymous access"), help:location+"/help-anonymous-access.html") {
-                form.checkbox(field: "anonymousAccess", checked:my.anonymousAccess)
+            form.entry(title:_("Allow anonymous access")) {
+                form.checkbox(field: "anonymousAccess", checked:p.anonymousAccess)
             }
 
-            form.entry(title:_("Allow Localhost"), help:location+"/help-allow-localhost.html") {
-                form.checkbox(field: "allowLocalhost", checked:my.allowLocalhost)
+            form.entry(title:_("Allow Localhost")) {
+                form.checkbox(field: "allowLocalhost", checked:p.allowLocalhost)
             }
 
-            form.entry(title:_("Allow Basic"), help:location+"/help-allow-basic.html") {
-                form.checkbox(field: "allowBasic", checked:my.allowBasic)
+            form.entry(title:_("Allow Basic")) {
+                form.checkbox(field: "allowBasic", checked:p.allowBasic)
             }
 
-            form.entry(title:_("Allow Delegation"), help:location+"/help-allow-delegation.html") {
-                form.checkbox(field: "allowDelegation", checked:my.allowDelegation)
+            form.entry(title:_("Allow Delegation")) {
+                form.checkbox(field: "allowDelegation", checked:p.allowDelegation)
             }
 
-            form.entry(title:_("Allow Unsecure Basic"), help:location+"/help-allow-unsecure-basic.html") {
-                form.checkbox(field: "allowUnsecureBasic", checked:my.allowUnsecureBasic)
+            form.entry(title:_("Allow Unsecure Basic")) {
+                form.checkbox(field: "allowUnsecureBasic", checked:p.allowUnsecureBasic)
             }
 
-            form.entry(title:_("Prompt NTLM"), help:location+"/help-prompt-ntlm.html") {
-                form.checkbox(field: "promptNtlm", checked:my.promptNtlm)
+            form.entry(title:_("Prompt NTLM")) {
+                form.checkbox(field: "promptNtlm", checked:p.promptNtlm)
             }
         }
     }

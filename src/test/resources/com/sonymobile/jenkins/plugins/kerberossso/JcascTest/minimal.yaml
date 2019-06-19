@@ -1,0 +1,5 @@
+security:
+  kerberosSso:
+    enabled: true
+    krb5Location: '${KRB5_CONF}'
+    loginLocation: '${LOGIN_CONF}'

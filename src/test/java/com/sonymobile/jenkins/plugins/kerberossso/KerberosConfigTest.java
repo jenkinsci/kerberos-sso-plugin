@@ -61,7 +61,7 @@ public class KerberosConfigTest {
             @Override public void evaluate() throws Throwable {
                 checkDisabled();
 
-                HtmlPage currentPage = r.j.createWebClient().goTo("configure");
+                HtmlPage currentPage = r.j.createWebClient().goTo("configureSecurity");
                 HtmlForm form = currentPage.getFormByName("config");
 
                 form.getInputByName("_.enabled").click();
@@ -94,7 +94,7 @@ public class KerberosConfigTest {
 
                 // Reconfigure disable
                 JenkinsRule.WebClient wc = r.j.createWebClient();
-                HtmlPage currentPage = wc.goTo("configure");
+                HtmlPage currentPage = wc.goTo("configureSecurity");
                 HtmlForm form = currentPage.getFormByName("config");
                 form.getInputByName("_.enabled").click();
                 r.j.submit(form);
@@ -103,7 +103,7 @@ public class KerberosConfigTest {
                 checkDisabled();
 
                 // Check config update propagated
-                currentPage = wc.goTo("configure");
+                currentPage = wc.goTo("configureSecurity");
                 form = currentPage.getFormByName("config");
                 form.getInputByName("_.enabled").click();
                 form.getInputByName("_.krb5Location").setValueAttribute("/foo");
@@ -159,7 +159,7 @@ public class KerberosConfigTest {
             @Override public void evaluate() throws Throwable {
                 checkDisabled();
 
-                HtmlPage currentPage = r.j.createWebClient().goTo("configure");
+                HtmlPage currentPage = r.j.createWebClient().goTo("configureSecurity");
                 HtmlForm form = currentPage.getFormByName("config");
 
                 form.getInputByName("_.enabled").click();
@@ -186,7 +186,7 @@ public class KerberosConfigTest {
                 PluginImpl.getInstance().setAllowUnsecureBasic(false);
                 PluginImpl.getInstance().reconfigure();
 
-                currentPage = r.j.createWebClient().goTo("configure");
+                currentPage = r.j.createWebClient().goTo("configureSecurity");
 
                 form = currentPage.getFormByName("config");
                 assertTrue("allowBasic not true",

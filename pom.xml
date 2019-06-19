@@ -165,6 +165,25 @@
           <artifactId>access-modifier-suppressions</artifactId>
           <version>1.16</version>
       </dependency>
+
+      <dependency>
+          <artifactId>configuration-as-code</artifactId>
+          <groupId>io.jenkins</groupId>
+          <version>1.12</version>
+      </dependency>
+      <dependency>
+          <artifactId>configuration-as-code-support</artifactId>
+          <groupId>io.jenkins.configuration-as-code</groupId>
+          <version>1.12</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <artifactId>configuration-as-code</artifactId>
+          <groupId>io.jenkins</groupId>
+          <version>1.12</version>
+          <scope>test</scope>
+          <type>test-jar</type>
+      </dependency>
   </dependencies>
 
   <repositories>

@@ -25,6 +25,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.google.inject.Inject;
 import hudson.remoting.Base64;
+import io.jenkins.plugins.casc.ConfigurationAsCode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.client.config.AuthSchemes;
@@ -35,6 +36,7 @@ import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jenkinsci.test.acceptance.FallbackConfig;
+import org.jenkinsci.test.acceptance.controller.JenkinsController;
 import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
 import org.jenkinsci.test.acceptance.docker.fixtures.KerberosContainer;
 import org.jenkinsci.test.acceptance.guice.TestCleaner;
@@ -47,8 +49,8 @@ import org.jenkinsci.test.acceptance.po.GlobalPluginConfiguration;
 import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
+import org.jenkinsci.test.acceptance.po.PageAreaImpl;
 import org.jenkinsci.test.acceptance.po.User;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.model.Statement;
@@ -168,8 +170,12 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         configureSso(kdc, true, true);
 
         String tokenCache = kdc.getClientTokenCache();
-
         FirefoxDriver nego = getNegotiatingFirefox(kdc, tokenCache);
+
+        assertNegotiationWorking(nego);
+    }
+
+    private void assertNegotiationWorking(FirefoxDriver nego) {
         nego.get(jenkins.url("/whoAmI").toExternalForm());
         assertThat(nego.getPageSource(), not(containsString(AUTHORIZED)));
 
@@ -184,28 +190,35 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         KerberosContainer kdc = startKdc();
         configureSso(kdc, true, true);
 
-        // No credentials provided
+        assertAnonymousWithoutCredentials();
+        assertLoggedInWithCorrectCredentials();
+        assertRejectedWithIncorrectCredentials();
+    }
+
+    private void assertRejectedWithIncorrectCredentials() throws IOException {
+        HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/login");
+        get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
+        CloseableHttpResponse response = getBadassHttpClient().execute(get);
+        assertEquals("Invalid password/token for user: user", response.getStatusLine().getReasonPhrase());
+    }
+
+    private void assertLoggedInWithCorrectCredentials() throws IOException {
+        HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/login");
+        get.setHeader("Authorization", "Basic " + Base64.encode("user:ATH".getBytes()));
+        CloseableHttpResponse response = getBadassHttpClient().execute(get);
+        String phrase = response.getStatusLine().getReasonPhrase();
+        String out = IOUtils.toString(response.getEntity().getContent());
+        assertThat(phrase + ": " + out, out, containsString("Full Name"));
+        //assertThat(phrase + ": " + out, out, containsString("Granted Authorities: authenticated"));
+        assertEquals(phrase + ": " + out, "OK", phrase);
+    }
+
+    private void assertAnonymousWithoutCredentials() throws IOException {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
         String out = IOUtils.toString(response.getEntity().getContent());
         assertThat(out, not(containsString("Granted Authorities: authenticated")));
         assertThat(out, containsString("Anonymous"));
-
-        // Correct credentials provided
-        get = new HttpGet(jenkins.url.toExternalForm() + "/login");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:ATH".getBytes()));
-        response = getBadassHttpClient().execute(get);
-        String phrase = response.getStatusLine().getReasonPhrase();
-        out = IOUtils.toString(response.getEntity().getContent());
-        assertThat(phrase + ": " + out, out, containsString("Full Name"));
-        //assertThat(phrase + ": " + out, out, containsString("Granted Authorities: authenticated"));
-        assertEquals(phrase + ": " + out, "OK", phrase);
-
-        // Incorrect credentials provided
-        get = new HttpGet(jenkins.url.toExternalForm() + "/login");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
-        response = getBadassHttpClient().execute(get);
-        assertEquals("Invalid password/token for user: user", response.getStatusLine().getReasonPhrase());
     }
 
     private FirefoxDriver getNegotiatingFirefox(KerberosContainer kdc, String tokenCache) {
@@ -235,7 +248,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         profile.setPreference("network.negotiate-auth.delegation-uris", trustedUris);
 
         FirefoxBinary binary = new FirefoxBinary();
-        Map<String,String> environment = new HashMap<String,String>();
+        Map<String,String> environment = new HashMap<>();
         // Inject config and TGT
         environment.put("KRB5CCNAME", tokenCache);
         environment.put("KRB5_CONFIG", kdc.getKrb5ConfPath());
@@ -256,7 +269,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         final FirefoxDriver driver = new FirefoxDriver(builder.build(), firefoxOptions);
         cleaner.addTask(new Statement() {
             @Override
-            public void evaluate() throws Throwable {
+            public void evaluate() {
                 try {
                     driver.quit();
                 } catch (UnreachableBrowserException ex) {
@@ -303,9 +316,9 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         // Turn Jenkins side debugging on
         jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true'); System.setProperty('sun.security.spnego.debug', 'true');");
 
-        JenkinsConfig config = jenkins.getConfigPage();
-        config.configure();
-        KerberosGlobalConfig kgc = new KerberosGlobalConfig(config);
+        GlobalSecurityConfig s = new GlobalSecurityConfig(jenkins);
+        s.configure();
+        KerberosGlobalConfig kgc = new KerberosGlobalConfig(s);
         kgc.enable();
         kgc.krb5Conf(kdc.getKrb5ConfPath());
         kgc.loginConf(kdc.getLoginConfPath());
@@ -313,7 +326,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         kgc.allowBasic(allowBasic);
         kgc.allowAnonymous(allowAnonymous);
 
-        config.save();
+        s.save();
     }
 
     /**
@@ -343,13 +356,14 @@ public class KerberosSsoTest extends AbstractJUnitTest {
                 .signup("user");
     }
 
-    private class KerberosGlobalConfig extends GlobalPluginConfiguration {
-        public KerberosGlobalConfig(JenkinsConfig config) {
-            super(config, "kerberos-sso");
+    private class KerberosGlobalConfig extends PageAreaImpl {
+        public KerberosGlobalConfig(GlobalSecurityConfig config) {
+            super(config, "/com-sonymobile-jenkins-plugins-kerberossso-PluginImpl");
         }
 
         public KerberosGlobalConfig enable() {
             control("enabled").check();
+            control("enabled/advanced-button").click();
             return this;
         }
 

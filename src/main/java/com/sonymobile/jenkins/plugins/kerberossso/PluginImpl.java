@@ -26,21 +26,28 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticationFactory;
 import hudson.Extension;
-import hudson.Plugin;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
+import hudson.init.TermMilestone;
+import hudson.init.Terminator;
 import hudson.model.Descriptor;
 import hudson.util.PluginServletFilter;
 import hudson.util.Secret;
-import jenkins.model.Jenkins;
+import jenkins.model.GlobalConfiguration;
+import jenkins.model.GlobalConfigurationCategory;
 import net.sf.json.JSONObject;
 import org.codelibs.spnego.SpnegoHttpFilter;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -52,28 +59,41 @@ import java.util.logging.Logger;
  * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
  */
 @Extension
-public class PluginImpl extends Plugin {
+@Symbol("kerberosSso")
+// Keeping the obsolete name from times when this extended Plugin
+public class PluginImpl extends GlobalConfiguration {
 
     private static final Logger logger = Logger.getLogger(PluginImpl.class.getName());
+    /*package*/ static final String DEFAULT_SERVICE_ACCOUNT = "Service account";
+    /*package*/ static final String DEFAULT_KRB5_CONF = "/etc/krb5.conf";
+    /*package*/ static final String DEFAULT_LOGIN_CONF = "/etc/login.conf";
+    /*package*/ static final String DEFAULT_SPNEGO_SERVER = "spnego-server";
+    /*package*/ static final String DEFAULT_SPNEGO_CLIENT = "spnego-client";
+    /*package*/ static final boolean DEFAULT_ANONYMOUS_ACCESS = false;
+    /*package*/ static final boolean DEFAULT_ALLOW_LOCALHOST = true;
+    /*package*/ static final boolean DEFAULT_ALLOW_BASIC = true;
+    /*package*/ static final boolean DEFAULT_ALLOW_DELEGATION = false;
+    /*package*/ static final boolean DEFAULT_ALLOW_UNSECURE_BASIC = true;
+    /*package*/ static final boolean DEFAULT_PROMPT_NTLM = false;
 
     private boolean enabled = false;
 
-    private String accountName = "Service account";
+    private String accountName = DEFAULT_SERVICE_ACCOUNT;
     private Secret password;
     private boolean redirectEnabled = false;
     private String redirect = "yourdomain.com";
 
-    private String krb5Location = "/etc/krb5.conf";
-    private String loginLocation = "/etc/login.conf";
-    private String loginServerModule = "spnego-server";
-    private String loginClientModule = "spnego-client";
+    private String krb5Location = DEFAULT_KRB5_CONF;
+    private String loginLocation = DEFAULT_LOGIN_CONF;
+    private String loginServerModule = DEFAULT_SPNEGO_SERVER;
+    private String loginClientModule = DEFAULT_SPNEGO_CLIENT;
 
-    private boolean anonymousAccess = false;
-    private boolean allowLocalhost = true;
-    private boolean allowBasic = true;
-    private boolean allowDelegation = false;
-    private boolean allowUnsecureBasic = true;
-    private boolean promptNtlm = false;
+    private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
+    private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
+    private boolean allowBasic = DEFAULT_ALLOW_BASIC;
+    private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
+    private boolean allowUnsecureBasic = DEFAULT_ALLOW_UNSECURE_BASIC;
+    private boolean promptNtlm = DEFAULT_PROMPT_NTLM;
 
     private transient KerberosSSOFilter filter;
 
@@ -82,8 +102,15 @@ public class PluginImpl extends Plugin {
      * @return the instance.
      */
     public static PluginImpl getInstance() {
-        Jenkins jenkins = Jenkins.getInstance();
-        return jenkins.getPlugin(PluginImpl.class);
+        return GlobalConfiguration.all().getInstance(PluginImpl.class);
+    }
+
+    public PluginImpl() {
+    }
+
+    @Override
+    public @Nonnull GlobalConfigurationCategory getCategory() {
+        return GlobalConfigurationCategory.get(GlobalConfigurationCategory.Security.class);
     }
 
     /**
@@ -96,38 +123,35 @@ public class PluginImpl extends Plugin {
 
     /**
      * Starts the plugin. Loads previous configuration if such exists.
-     * @throws Exception if the Kerberos filter cannot be added to Jenkins.
      */
-    @Override
-    public void start() throws Exception {
-        load();
-        try {
-            if (enabled) {
-                registerFilter();
-            }
-        } catch (ServletException e) {
-            logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
-            enabled = false;
-            removeFilter();
-        }
+    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    @Restricted(DoNotUse.class)
+    public static void start() {
+        PluginImpl i = getInstance();
+        i.load();
+        i.registerFilter();
     }
 
     /**
      * Stops this plugin and removes the filter from Jenkins.
-     * @throws Exception if removing the filter fails.
      */
-    @Override
-    public void stop() throws Exception {
-        removeFilter();
+    @Terminator(after = TermMilestone.COMPLETED)
+    @Restricted(DoNotUse.class)
+    public static void stop() {
+        getInstance().removeFilter();
     }
 
     /**
      * Safe and complete removal of the filter from the system.
-     * @throws ServletException if
+     * @throws FailedToConfigureFilter if
      */
-    private void removeFilter() throws ServletException {
+    void removeFilter() throws FailedToConfigureFilter {
         if (filter != null) {
-            PluginServletFilter.removeFilter(filter);
+            try {
+                PluginServletFilter.removeFilter(filter);
+            } catch (ServletException e) {
+                throw new FailedToConfigureFilter("Unable to remove filter", e);
+            }
             filter.destroy();
             filter = null;
         }
@@ -135,11 +159,33 @@ public class PluginImpl extends Plugin {
 
     /**
      * Create and attach the filter.
-     * @throws ServletException Unable to add filter.
+     * @throws FailedToConfigureFilter Unable to add filter.
      */
-    private void registerFilter() throws ServletException {
-        this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
-        PluginServletFilter.addFilter(filter);
+    // TODO Implement a replace filter instead so failure to create/attach does not cause removal of the old
+    void registerFilter() throws FailedToConfigureFilter {
+        try {
+            if (enabled) {
+                filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
+                PluginServletFilter.addFilter(filter);
+            }
+        } catch (ServletException e) {
+            logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
+            enabled = false;
+            try {
+                removeFilter();
+            } catch (Throwable ee) {
+                e.addSuppressed(ee);
+            }
+            throw new FailedToConfigureFilter("Unable to register filter", e);
+        }
+    }
+
+    private static final class FailedToConfigureFilter extends RuntimeException {
+        private static final long serialVersionUID = 2884341137429877076L;
+
+        private FailedToConfigureFilter(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     /**
@@ -149,13 +195,9 @@ public class PluginImpl extends Plugin {
      * @param req the Stapler Request to serve.
      * @param formData the JSON data containing the new configuration.
      * @throws Descriptor.FormException if any data in the form is wrong.
-     * @throws IOException when adding and removing the filter.
-     * @throws ServletException when the filter is created faulty config.
      */
     @Override
-    public void configure(StaplerRequest req, JSONObject formData)
-            throws Descriptor.FormException, IOException, ServletException {
-
+    public boolean configure(StaplerRequest req, JSONObject formData) throws Descriptor.FormException {
         if (formData.has("enabled")) {
 
             JSONObject data = (JSONObject)formData.get("enabled");
@@ -217,6 +259,7 @@ public class PluginImpl extends Plugin {
         }
 
         save();
+        return true;
     }
 
     /**
@@ -237,10 +280,6 @@ public class PluginImpl extends Plugin {
         this.accountName = accountName;
     }
 
-    /**
-     * Set password config parameter.
-     * @param password value of password
-     */
     @Restricted(NoExternalUse.class)
     void setPassword(Secret password) {
         this.password = password;
@@ -346,12 +385,12 @@ public class PluginImpl extends Plugin {
     }
 
     /**
-     * Allows for reconfigure if config have been altered programatically.
+     * Allows for reconfigure if config have been altered programmatically.
      *
-     * @throws ServletException if occurs
+     * @throws FailedToConfigureFilter if fails to apply the settings
      */
     @Restricted(NoExternalUse.class)
-    public void reconfigure() throws ServletException {
+    /*package*/ void reconfigure() throws FailedToConfigureFilter {
         removeFilter();
         registerFilter();
     }
@@ -464,8 +503,9 @@ public class PluginImpl extends Plugin {
      * Set login all URLs.
      * @param anonymousAccess Permit anonymous access.
      */
-    @Restricted(NoExternalUse.class)
-    public void setAnonymousAccess(boolean anonymousAccess) {
+    //JCasC hack @Restricted(NoExternalUse.class)
+    @DataBoundSetter
+    void setAnonymousAccess(boolean anonymousAccess) {
         this.anonymousAccess = anonymousAccess;
     }
 
@@ -526,7 +566,7 @@ public class PluginImpl extends Plugin {
 
     /**
      * Creates a map of the current configuration. This is then sent to the Kerberos filter's constructor.
-     * @return a mappning between properties and configuration.
+     * @return a mapping between properties and configuration.
      */
     private Map<String, String> createConfigMap() {
         Map<String, String> config = new HashMap<String, String>();
