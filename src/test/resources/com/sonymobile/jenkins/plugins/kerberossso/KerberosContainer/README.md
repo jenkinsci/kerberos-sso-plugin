@@ -7,7 +7,7 @@ This is an alternative to automated test suitable for manual testing/investigati
 Run:
 
     $ git clone git@github.com:jenkinsci/acceptance-test-harness.git
-    $ cd src/main/resources/org/jenkinsci/test/acceptance/docker/fixtures/KerberosContainer/
+    $ cd src/test/resources/com/sonymobile/jenkins/plugins/kerberossso/KerberosContainer/
     $ ./run-kdc.sh
 
 ## Start Jenkins
@@ -24,6 +24,6 @@ Configure backend security realm and kerberos sso with file names provided in St
 
 Run:
 
-    $ cd src/main/resources/org/jenkinsci/test/acceptance/docker/fixtures/KerberosContainer/
+    $ cd src/test/resources/com/sonymobile/jenkins/plugins/kerberossso/KerberosContainer/
     $ env KRB5_CONFIG=./target/etc.krb5.conf KRB5CCNAME=./target/client.keytab kinit -k -t ./target/keytab/user user
     $ env KRB5_CONFIG=./target/etc.krb5.conf KRB5CCNAME=./target/client.keytab KRB5_TRACE=target/tracelog curl -vL --negotiate -u : http://localhost:8080/jenkins/whoAmI
