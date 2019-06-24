@@ -1,3 +1,10 @@
+#!/usr/bin/env bash
+# Inspired by https://disconnected.systems/blog/another-bash-strict-mode/
+set -uo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+set -x
+
 ADDRESS=`hostname -I`
 ADDRESS=`echo -e "${ADDRESS}" | tr -d '[:space:]'`
 rm -f /dev/random && ln -s /dev/urandom /dev/random
@@ -6,7 +13,7 @@ rm -f /dev/random && ln -s /dev/urandom /dev/random
 /usr/sbin/kadmin.local -w ATH -q "addprinc -pw ATH -clearpolicy -e des-cbc-md5:normal,des-cbc-crc:normal,rc4-hmac:normal HTTP/localhost"
 
 
-sed -i "s@__KDC_PORT__@88@g; s@__ADMIN_PORT__@749@g; s@_ADDRESS_@${ADDRESS}@g" /etc/krb5.conf
+sed -i "s@__KDC_PORT__@88@g; s@__ADMIN_PORT__@749@g; s@__ADDRESS__@${ADDRESS}@g" /etc/krb5.conf
 mkdir -p /target/keytab
 
 bash keytab.sh /target/keytab/service HTTP/localhost@EXAMPLE.COM

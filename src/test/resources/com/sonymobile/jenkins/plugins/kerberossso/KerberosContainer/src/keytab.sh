@@ -1,10 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Inspired by https://disconnected.systems/blog/another-bash-strict-mode/
+set -uo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+set -x
 
 # Create a keytab on path=$1 for principal=$2.
 
 # This is run from container so the host do not have to install kerberos stuff.
-
-set -eo pipefail
 
 rm -rf "$1" && mkdir -p "$(dirname "$1")"
 ktutil <<EOF
