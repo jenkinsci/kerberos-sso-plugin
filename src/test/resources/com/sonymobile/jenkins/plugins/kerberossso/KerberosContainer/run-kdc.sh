@@ -12,12 +12,10 @@ rm -rf "$DIR/target"; mkdir -p "$DIR/target/keytab"
 trap "rm -rf '$DIR/target'" EXIT
 
 docker build -t kerberos-kdc --build-arg=HOST_NAME=$host_name .
-docker run -p 88 -p 749 --cidfile="$kdc_cid_file" kerberos-kdc &
+docker run -p 88 -p 749 --cidfile="$kdc_cid_file" -v "$DIR/target/:/target:Z" kerberos-kdc &
 sleep 1
 cid="$(cat $kdc_cid_file)"
 trap "echo -e '\nAborting KDC...'; docker kill $cid; docker rm $cid" EXIT
-
-docker cp "$cid:/target/keytab" "$DIR/target/"
 
 kdc_port="$(docker port $cid 88 | sed "s/0.0.0.0://")"
 admin_port="$(docker port $cid 749 | sed "s/0.0.0.0://")"

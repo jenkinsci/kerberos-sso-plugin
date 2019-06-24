@@ -18,6 +18,7 @@ mkdir -p /target/keytab
 
 bash keytab.sh /target/keytab/service HTTP/localhost@EXAMPLE.COM
 bash keytab.sh /target/keytab/user user@EXAMPLE.COM
+chmod 777 /target/keytab/service /target/keytab/user
 
 /usr/sbin/_kadmind -P /var/run/kadmind.pid && /usr/sbin/krb5kdc -P /var/run/krb5kdc.pid
 touch /tmp/kerberos_running
