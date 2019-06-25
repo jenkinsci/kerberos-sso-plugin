@@ -31,10 +31,12 @@ import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.yaml.YamlSource;
 import org.apache.tools.ant.filters.StringInputStream;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
@@ -90,6 +93,11 @@ public class JcascTest {
         applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "foo.com")));
         assertNotSame(PluginImpl.getInstance().getFilter(), oldFilter);
         assertNotNull(PluginImpl.getInstance().getFilter());
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ConfigurationAsCode.get().export(baos);
+        String out = baos.toString();
+        assertThat(out, containsString("kerberosSso"));
     }
 
     @Test

@@ -23,8 +23,10 @@
  */
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.Secret;
+import io.jenkins.plugins.casc.Attribute;
 import io.jenkins.plugins.casc.BaseConfigurator;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorException;
@@ -33,7 +35,12 @@ import io.jenkins.plugins.casc.model.Mapping;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import static io.jenkins.plugins.casc.Attribute.noop;
 
 /*
  * Giving up on JCasC's automagic and using explicit configurator.
@@ -102,5 +109,42 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
     @Override
     public Class<PluginImpl> getTarget() {
         return PluginImpl.class;
+    }
+
+    @Override
+    public @Nonnull Set<Attribute<PluginImpl, ?>> describe() {
+        return new HashSet<>(Arrays.asList(
+                new Attribute<PluginImpl, Boolean>("enabled", String.class).getter(PluginImpl::getEnabled).setter(noop()),
+                new Attribute<PluginImpl, String>("accountName", String.class).getter(PluginImpl::getAccountName).setter(noop()),
+                new Attribute<PluginImpl, Secret>("password", String.class).getter(PluginImpl::getPassword).setter(noop()),
+                new Attribute<PluginImpl, String>("redirect", String.class).getter(PluginImpl::getRedirect).setter(noop()),
+                new Attribute<PluginImpl, String>("krb5Location", String.class).getter(PluginImpl::getKrb5Location).setter(noop()),
+                new Attribute<PluginImpl, String>("loginLocation", String.class).getter(PluginImpl::getLoginLocation).setter(noop()),
+                new Attribute<PluginImpl, String>("loginServerModule", String.class).getter(PluginImpl::getLoginServerModule).setter(noop()),
+                new Attribute<PluginImpl, String>("loginClientModule", String.class).getter(PluginImpl::getLoginClientModule).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("anonymousAccess", String.class).getter(PluginImpl::getAnonymousAccess).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowLocalhost", String.class).getter(PluginImpl::isAllowLocalhost).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowBasic", String.class).getter(PluginImpl::isAllowBasic).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowDelegation", String.class).getter(PluginImpl::isAllowDelegation).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowUnsecureBasic", String.class).getter(PluginImpl::isAllowUnsecureBasic).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("promptNtlm", String.class).getter(PluginImpl::isPromptNtlm).setter(noop())
+        ));
+    }
+
+    @Override
+    public CNode describe(PluginImpl instance, ConfigurationContext context) throws Exception {
+        Mapping mapping = new Mapping();
+        for (Attribute<PluginImpl, ?> attribute : getAttributes()) {
+            CNode value = attribute.describe(instance, context);
+            if (value != null) {
+                mapping.put(attribute.getName(), value);
+            }
+        }
+        return mapping;
+    }
+
+    @Override
+    public @Nonnull String getName() {
+        return PluginImpl.JCASC_NAME;
     }
 }

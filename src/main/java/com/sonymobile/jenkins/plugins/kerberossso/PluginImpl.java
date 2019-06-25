@@ -59,10 +59,11 @@ import java.util.logging.Logger;
  * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
  */
 @Extension
-@Symbol("kerberosSso")
+@Symbol(PluginImpl.JCASC_NAME)
 // Keeping the obsolete name from times when this extended Plugin
 public class PluginImpl extends GlobalConfiguration {
 
+    public static final String JCASC_NAME = "kerberosSso";
     private static final Logger logger = Logger.getLogger(PluginImpl.class.getName());
     /*package*/ static final String DEFAULT_SERVICE_ACCOUNT = "Service account";
     /*package*/ static final String DEFAULT_KRB5_CONF = "/etc/krb5.conf";
