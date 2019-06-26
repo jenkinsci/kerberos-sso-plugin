@@ -25,7 +25,6 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.google.inject.Inject;
 import hudson.remoting.Base64;
-import io.jenkins.plugins.casc.ConfigurationAsCode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.client.config.AuthSchemes;
@@ -36,7 +35,6 @@ import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jenkinsci.test.acceptance.FallbackConfig;
-import org.jenkinsci.test.acceptance.controller.JenkinsController;
 import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
 import org.jenkinsci.test.acceptance.docker.fixtures.KerberosContainer;
 import org.jenkinsci.test.acceptance.guice.TestCleaner;
@@ -45,9 +43,7 @@ import org.jenkinsci.test.acceptance.junit.DockerTest;
 import org.jenkinsci.test.acceptance.junit.FailureDiagnostics;
 import org.jenkinsci.test.acceptance.junit.WithDocker;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
-import org.jenkinsci.test.acceptance.po.GlobalPluginConfiguration;
 import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
-import org.jenkinsci.test.acceptance.po.JenkinsConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
 import org.jenkinsci.test.acceptance.po.PageAreaImpl;
 import org.jenkinsci.test.acceptance.po.User;
@@ -63,9 +59,11 @@ import org.openqa.selenium.remote.UnreachableBrowserException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -96,7 +94,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     public void kerberosTicket() throws Exception {
         setupRealmUser();
         KerberosContainer kdc = startKdc();
-        configureSso(kdc, false, false);
+        configureSsoUsingPos(kdc, false, false);
 
         verifyTicketAuth(kdc);
 
@@ -110,7 +108,16 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     public void kerberosTicketWithBasicAuthEnabled() throws Exception {
         setupRealmUser();
         KerberosContainer kdc = startKdc();
-        configureSso(kdc, false, true);
+        configureSsoUsingPos(kdc, false, true);
+
+        verifyTicketAuth(kdc);
+    }
+
+    @Test
+    public void kerberosTicketWithBasicAuthEnabledJcasc() throws Exception {
+        setupRealmUser();
+        KerberosContainer kdc = startKdc();
+        configureSsoUsingJcasc(kdc, false, true);
 
         verifyTicketAuth(kdc);
     }
@@ -137,7 +144,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     public void basicAuth() throws Exception {
         setupRealmUser();
         KerberosContainer kdc = startKdc();
-        configureSso(kdc, false, true);
+        configureSsoUsingPos(kdc, false, true);
 
         CloseableHttpClient httpClient = getBadassHttpClient();
 
@@ -167,7 +174,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     public void explicitTicketAuth() throws Exception {
         setupRealmUser();
         KerberosContainer kdc = startKdc();
-        configureSso(kdc, true, true);
+        configureSsoUsingPos(kdc, true, true);
 
         String tokenCache = kdc.getClientTokenCache();
         FirefoxDriver nego = getNegotiatingFirefox(kdc, tokenCache);
@@ -188,7 +195,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     public void explicitBasicAuth() throws Exception {
         setupRealmUser();
         KerberosContainer kdc = startKdc();
-        configureSso(kdc, true, true);
+        configureSsoUsingPos(kdc, true, true);
 
         assertAnonymousWithoutCredentials();
         assertLoggedInWithCorrectCredentials();
@@ -312,7 +319,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
      * @param allowAnonymous Require authentication on all URLs.
      * @param allowBasic Allow basic authentication.
      */
-    private void configureSso(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) {
+    private void configureSsoUsingPos(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) {
         // Turn Jenkins side debugging on
         jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true'); System.setProperty('sun.security.spnego.debug', 'true');");
 
@@ -327,6 +334,25 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         kgc.allowAnonymous(allowAnonymous);
 
         s.save();
+    }
+
+    private void configureSsoUsingJcasc(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) throws IOException {
+        JcascPageObject jcascPo = new JcascPageObject(jenkins);
+        jcascPo.open();
+        Path decl = Files.createTempFile("kerberos-sso", "jcasc");
+        decl.toFile().deleteOnExit();
+        try (PrintWriter w = new PrintWriter(decl.toFile())) {
+            w.println("security:");
+            w.println("  kerberosSso:");
+            w.println("    enabled: true");
+            w.println("    krb5Location: " + kdc.getKrb5ConfPath());
+            w.println("    loginLocation: " + kdc.getLoginConfPath());
+            w.println("    allowLocalhost: false");
+            w.println("    allowBasic: " + allowBasic);
+            w.println("    anonymousAccess: " + allowAnonymous);
+        }
+
+        jcascPo.setSource(decl.toAbsolutePath().toString());
     }
 
     /**
