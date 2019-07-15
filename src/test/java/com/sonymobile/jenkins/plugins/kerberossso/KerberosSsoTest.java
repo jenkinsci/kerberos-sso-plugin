@@ -36,13 +36,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jenkinsci.test.acceptance.FallbackConfig;
 import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
-import org.jenkinsci.test.acceptance.docker.fixtures.KerberosContainer;
 import org.jenkinsci.test.acceptance.guice.TestCleaner;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.DockerTest;
 import org.jenkinsci.test.acceptance.junit.FailureDiagnostics;
 import org.jenkinsci.test.acceptance.junit.WithDocker;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
+import org.jenkinsci.test.acceptance.plugins.configuration_as_code.JcascManage;
 import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
 import org.jenkinsci.test.acceptance.po.PageAreaImpl;
@@ -337,8 +337,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     }
 
     private void configureSsoUsingJcasc(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) throws IOException {
-        JcascPageObject jcascPo = new JcascPageObject(jenkins);
-        jcascPo.open();
+        JcascManage page = new JcascManage(jenkins);
         Path decl = Files.createTempFile("kerberos-sso", "jcasc");
         decl.toFile().deleteOnExit();
         try (PrintWriter w = new PrintWriter(decl.toFile())) {
@@ -352,7 +351,8 @@ public class KerberosSsoTest extends AbstractJUnitTest {
             w.println("    anonymousAccess: " + allowAnonymous);
         }
 
-        jcascPo.setSource(decl.toAbsolutePath().toString());
+        page.open();
+        page.configure(decl.toAbsolutePath().toString());
     }
 
     /**
