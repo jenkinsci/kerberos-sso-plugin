@@ -25,6 +25,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
+import hudson.Functions;
 import hudson.Util;
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
@@ -45,10 +46,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static hudson.Functions.isWindows;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
 
 public class JcascTest {
 
@@ -60,6 +63,7 @@ public class JcascTest {
 
     @Before
     public void before() throws Exception {
+        assumeFalse(isWindows());
         krb5conf = new File(JcascTest.class.getResource("JcascTest/test-krb5.conf").toURI()).getAbsolutePath();
         loginConf = new File(JcascTest.class.getResource("JcascTest/test-login.conf").toURI()).getAbsolutePath();
     }
