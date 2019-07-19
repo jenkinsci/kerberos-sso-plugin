@@ -26,21 +26,27 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticationFactory;
 import hudson.Extension;
-import hudson.Plugin;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
+import hudson.init.TermMilestone;
+import hudson.init.Terminator;
 import hudson.model.Descriptor;
 import hudson.util.PluginServletFilter;
 import hudson.util.Secret;
-import jenkins.model.Jenkins;
+import jenkins.model.GlobalConfiguration;
+import jenkins.model.GlobalConfigurationCategory;
 import net.sf.json.JSONObject;
 import org.codelibs.spnego.SpnegoHttpFilter;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -52,28 +58,43 @@ import java.util.logging.Logger;
  * @author Joakim Ahle &lt;joakim.ahle@sonymobile.com&gt;
  */
 @Extension
-public class PluginImpl extends Plugin {
+@Symbol(PluginImpl.JCASC_NAME)
+@Restricted(NoExternalUse.class)
+// Keeping the obsolete name from times when this extended Plugin
+public class PluginImpl extends GlobalConfiguration {
 
+    public static final String JCASC_NAME = "kerberosSso";
     private static final Logger logger = Logger.getLogger(PluginImpl.class.getName());
+    /*package*/ static final String DEFAULT_SERVICE_ACCOUNT = "Service account";
+    /*package*/ static final String DEFAULT_KRB5_CONF = "/etc/krb5.conf";
+    /*package*/ static final String DEFAULT_LOGIN_CONF = "/etc/login.conf";
+    /*package*/ static final String DEFAULT_SPNEGO_SERVER = "spnego-server";
+    /*package*/ static final String DEFAULT_SPNEGO_CLIENT = "spnego-client";
+    /*package*/ static final boolean DEFAULT_ANONYMOUS_ACCESS = false;
+    /*package*/ static final boolean DEFAULT_ALLOW_LOCALHOST = true;
+    /*package*/ static final boolean DEFAULT_ALLOW_BASIC = true;
+    /*package*/ static final boolean DEFAULT_ALLOW_DELEGATION = false;
+    /*package*/ static final boolean DEFAULT_ALLOW_UNSECURE_BASIC = true;
+    /*package*/ static final boolean DEFAULT_PROMPT_NTLM = false;
 
     private boolean enabled = false;
 
-    private String accountName = "Service account";
+    private String accountName = DEFAULT_SERVICE_ACCOUNT;
     private Secret password;
     private boolean redirectEnabled = false;
     private String redirect = "yourdomain.com";
 
-    private String krb5Location = "/etc/krb5.conf";
-    private String loginLocation = "/etc/login.conf";
-    private String loginServerModule = "spnego-server";
-    private String loginClientModule = "spnego-client";
+    private String krb5Location = DEFAULT_KRB5_CONF;
+    private String loginLocation = DEFAULT_LOGIN_CONF;
+    private String loginServerModule = DEFAULT_SPNEGO_SERVER;
+    private String loginClientModule = DEFAULT_SPNEGO_CLIENT;
 
-    private boolean anonymousAccess = false;
-    private boolean allowLocalhost = true;
-    private boolean allowBasic = true;
-    private boolean allowDelegation = false;
-    private boolean allowUnsecureBasic = true;
-    private boolean promptNtlm = false;
+    private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
+    private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
+    private boolean allowBasic = DEFAULT_ALLOW_BASIC;
+    private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
+    private boolean allowUnsecureBasic = DEFAULT_ALLOW_UNSECURE_BASIC;
+    private boolean promptNtlm = DEFAULT_PROMPT_NTLM;
 
     private transient KerberosSSOFilter filter;
 
@@ -82,8 +103,15 @@ public class PluginImpl extends Plugin {
      * @return the instance.
      */
     public static PluginImpl getInstance() {
-        Jenkins jenkins = Jenkins.getInstance();
-        return jenkins.getPlugin(PluginImpl.class);
+        return GlobalConfiguration.all().getInstance(PluginImpl.class);
+    }
+
+    public PluginImpl() {
+    }
+
+    @Override
+    public @Nonnull GlobalConfigurationCategory getCategory() {
+        return GlobalConfigurationCategory.get(GlobalConfigurationCategory.Security.class);
     }
 
     /**
@@ -96,38 +124,35 @@ public class PluginImpl extends Plugin {
 
     /**
      * Starts the plugin. Loads previous configuration if such exists.
-     * @throws Exception if the Kerberos filter cannot be added to Jenkins.
      */
-    @Override
-    public void start() throws Exception {
-        load();
-        try {
-            if (enabled) {
-                registerFilter();
-            }
-        } catch (ServletException e) {
-            logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
-            enabled = false;
-            removeFilter();
-        }
+    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    @Restricted(DoNotUse.class)
+    public static void start() {
+        PluginImpl i = getInstance();
+        i.load();
+        i.registerFilter();
     }
 
     /**
      * Stops this plugin and removes the filter from Jenkins.
-     * @throws Exception if removing the filter fails.
      */
-    @Override
-    public void stop() throws Exception {
-        removeFilter();
+    @Terminator(after = TermMilestone.COMPLETED)
+    @Restricted(DoNotUse.class)
+    public static void stop() {
+        getInstance().removeFilter();
     }
 
     /**
      * Safe and complete removal of the filter from the system.
-     * @throws ServletException if
+     * @throws FailedToConfigureFilter if
      */
-    private void removeFilter() throws ServletException {
+    void removeFilter() throws FailedToConfigureFilter {
         if (filter != null) {
-            PluginServletFilter.removeFilter(filter);
+            try {
+                PluginServletFilter.removeFilter(filter);
+            } catch (ServletException e) {
+                throw new FailedToConfigureFilter("Unable to remove filter", e);
+            }
             filter.destroy();
             filter = null;
         }
@@ -135,11 +160,33 @@ public class PluginImpl extends Plugin {
 
     /**
      * Create and attach the filter.
-     * @throws ServletException Unable to add filter.
+     * @throws FailedToConfigureFilter Unable to add filter.
      */
-    private void registerFilter() throws ServletException {
-        this.filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
-        PluginServletFilter.addFilter(filter);
+    // TODO Implement a replace filter instead so failure to create/attach does not cause removal of the old
+    void registerFilter() throws FailedToConfigureFilter {
+        try {
+            if (enabled) {
+                filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
+                PluginServletFilter.addFilter(filter);
+            }
+        } catch (ServletException e) {
+            logger.log(Level.SEVERE, "Failed initialize plugin due to faulty config.", e);
+            enabled = false;
+            try {
+                removeFilter();
+            } catch (Throwable ee) {
+                e.addSuppressed(ee);
+            }
+            throw new FailedToConfigureFilter("Unable to register filter", e);
+        }
+    }
+
+    private static final class FailedToConfigureFilter extends RuntimeException {
+        private static final long serialVersionUID = 2884341137429877076L;
+
+        private FailedToConfigureFilter(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 
     /**
@@ -149,13 +196,9 @@ public class PluginImpl extends Plugin {
      * @param req the Stapler Request to serve.
      * @param formData the JSON data containing the new configuration.
      * @throws Descriptor.FormException if any data in the form is wrong.
-     * @throws IOException when adding and removing the filter.
-     * @throws ServletException when the filter is created faulty config.
      */
     @Override
-    public void configure(StaplerRequest req, JSONObject formData)
-            throws Descriptor.FormException, IOException, ServletException {
-
+    public boolean configure(StaplerRequest req, JSONObject formData) throws Descriptor.FormException {
         if (formData.has("enabled")) {
 
             JSONObject data = (JSONObject)formData.get("enabled");
@@ -217,14 +260,14 @@ public class PluginImpl extends Plugin {
         }
 
         save();
+        return true;
     }
 
     /**
      * Set enabled config parameter.
      * @param enabled value of enabled
      */
-    @Restricted(NoExternalUse.class)
-    void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -232,17 +275,11 @@ public class PluginImpl extends Plugin {
      * Set accountName config parameter.
      * @param accountName value of accountName
      */
-    @Restricted(NoExternalUse.class)
-    void setAccountName(String accountName) {
+    public void setAccountName(String accountName) {
         this.accountName = accountName;
     }
 
-    /**
-     * Set password config parameter.
-     * @param password value of password
-     */
-    @Restricted(NoExternalUse.class)
-    void setPassword(Secret password) {
+    public void setPassword(Secret password) {
         this.password = password;
     }
 
@@ -250,8 +287,7 @@ public class PluginImpl extends Plugin {
      * Set redirectEnabled config parameter.
      * @param redirectEnabled value of redirectEnabled
      */
-    @Restricted(NoExternalUse.class)
-    void setRedirectEnabled(boolean redirectEnabled) {
+    public void setRedirectEnabled(boolean redirectEnabled) {
         this.redirectEnabled = redirectEnabled;
     }
 
@@ -259,8 +295,7 @@ public class PluginImpl extends Plugin {
      * Set redirect config parameter.
      * @param redirect value of redirect
      */
-    @Restricted(NoExternalUse.class)
-    void setRedirect(String redirect) {
+    public void setRedirect(String redirect) {
         this.redirect = redirect;
     }
 
@@ -268,8 +303,7 @@ public class PluginImpl extends Plugin {
      * Set krb5Location config parameter.
      * @param krb5Location value of krb5Location
      */
-    @Restricted(NoExternalUse.class)
-    void setKrb5Location(String krb5Location) {
+    public void setKrb5Location(String krb5Location) {
         this.krb5Location = krb5Location;
     }
 
@@ -277,8 +311,7 @@ public class PluginImpl extends Plugin {
      * Set loginLocation config parameter.
      * @param loginLocation value of loginLocation
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginLocation(String loginLocation) {
+    public void setLoginLocation(String loginLocation) {
         this.loginLocation = loginLocation;
     }
 
@@ -286,8 +319,7 @@ public class PluginImpl extends Plugin {
      * Set loginServerModule config parameter.
      * @param loginServerModule value of loginServerModule
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginServerModule(String loginServerModule) {
+    public void setLoginServerModule(String loginServerModule) {
         this.loginServerModule = loginServerModule;
     }
 
@@ -295,8 +327,7 @@ public class PluginImpl extends Plugin {
      * Set loginClientModule config parameter.
      * @param loginClientModule value of loginClientModule
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginClientModule(String loginClientModule) {
+    public void setLoginClientModule(String loginClientModule) {
         this.loginClientModule = loginClientModule;
     }
 
@@ -304,8 +335,7 @@ public class PluginImpl extends Plugin {
      * Set allowLocalhost config parameter.
      * @param allowLocalhost value of allowLocalhost
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowLocalhost(boolean allowLocalhost) {
+    public void setAllowLocalhost(boolean allowLocalhost) {
         this.allowLocalhost = allowLocalhost;
     }
 
@@ -313,8 +343,7 @@ public class PluginImpl extends Plugin {
      * Set allowBasic config parameter.
      * @param allowBasic value of allowBasic
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowBasic(boolean allowBasic) {
+    public void setAllowBasic(boolean allowBasic) {
         this.allowBasic = allowBasic;
     }
 
@@ -322,8 +351,7 @@ public class PluginImpl extends Plugin {
      * Set allowDelegation config parameter.
      * @param allowDelegation value of allowDelegation
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowDelegation(boolean allowDelegation) {
+    public void setAllowDelegation(boolean allowDelegation) {
         this.allowDelegation = allowDelegation;
     }
 
@@ -331,8 +359,7 @@ public class PluginImpl extends Plugin {
      * Set allowUnsecureBasic config parameter.
      * @param allowUnsecureBasic value of allowUnsecureBasic
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowUnsecureBasic(boolean allowUnsecureBasic) {
+    public void setAllowUnsecureBasic(boolean allowUnsecureBasic) {
         this.allowUnsecureBasic = allowUnsecureBasic;
     }
 
@@ -340,18 +367,17 @@ public class PluginImpl extends Plugin {
      * Set promptNtlm config parameter.
      * @param promptNtlm value of promptNtlm
      */
-    @Restricted(NoExternalUse.class)
-    void setPromptNtlm(boolean promptNtlm) {
+    public void setPromptNtlm(boolean promptNtlm) {
         this.promptNtlm = promptNtlm;
     }
 
     /**
-     * Allows for reconfigure if config have been altered programatically.
+     * Allows for reconfigure if config have been altered programmatically.
      *
-     * @throws ServletException if occurs
+     * @throws FailedToConfigureFilter if fails to apply the settings
      */
     @Restricted(NoExternalUse.class)
-    public void reconfigure() throws ServletException {
+    /*package*/ void reconfigure() throws FailedToConfigureFilter {
         removeFilter();
         registerFilter();
     }
@@ -374,7 +400,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether the Filter is currently enabled or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean getEnabled() {
         return enabled;
     }
@@ -383,7 +408,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth account.
      */
-    @Restricted(NoExternalUse.class)
     public String getAccountName() {
         return accountName;
     }
@@ -392,7 +416,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth password as a secret.
      */
-    @Restricted(NoExternalUse.class)
     public Secret getPassword() {
         return password;
     }
@@ -401,7 +424,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether the user has checked domain redirection or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isRedirectEnabled() {
         return redirectEnabled;
     }
@@ -410,7 +432,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current domain to redirect to, if redirect is enabled.
      */
-    @Restricted(NoExternalUse.class)
     public String getRedirect() {
         return redirect;
     }
@@ -419,7 +440,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current location of the krb5.conf file.
      */
-    @Restricted(NoExternalUse.class)
     public String getKrb5Location() {
         return krb5Location;
     }
@@ -428,7 +448,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current location of the login.conf file.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginLocation() {
         return loginLocation;
     }
@@ -437,7 +456,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current Login-server module.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginServerModule() {
         return loginServerModule;
     }
@@ -446,7 +464,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return the current Login-client module.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginClientModule() {
         return loginClientModule;
     }
@@ -455,7 +472,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether the user needs to authenticate on non-login URLs.
      */
-    @Restricted(NoExternalUse.class)
     public boolean getAnonymousAccess() {
         return anonymousAccess;
     }
@@ -464,7 +480,6 @@ public class PluginImpl extends Plugin {
      * Set login all URLs.
      * @param anonymousAccess Permit anonymous access.
      */
-    @Restricted(NoExternalUse.class)
     public void setAnonymousAccess(boolean anonymousAccess) {
         this.anonymousAccess = anonymousAccess;
     }
@@ -473,7 +488,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether Localhost should be allowed without authentication or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowLocalhost() {
         return allowLocalhost;
     }
@@ -482,7 +496,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether unsecure basic should be used if Kerberos fails.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowUnsecureBasic() {
         return allowUnsecureBasic;
     }
@@ -491,7 +504,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether NTLM users should be prompted to use basic authentication.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isPromptNtlm() {
         return promptNtlm;
     }
@@ -500,7 +512,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether servlet delegation should be used.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowDelegation() {
         return allowDelegation;
     }
@@ -509,7 +520,6 @@ public class PluginImpl extends Plugin {
      * Used by groovy for data-binding.
      * @return whether Basic authentication should be used if Kerberos fails.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowBasic() {
         return allowBasic;
     }
@@ -526,7 +536,7 @@ public class PluginImpl extends Plugin {
 
     /**
      * Creates a map of the current configuration. This is then sent to the Kerberos filter's constructor.
-     * @return a mappning between properties and configuration.
+     * @return a mapping between properties and configuration.
      */
     private Map<String, String> createConfigMap() {
         Map<String, String> config = new HashMap<String, String>();

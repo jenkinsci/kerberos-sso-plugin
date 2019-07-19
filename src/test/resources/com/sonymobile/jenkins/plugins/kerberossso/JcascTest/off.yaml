@@ -1,0 +1,3 @@
+security:
+  kerberosSso:
+    enabled: false
