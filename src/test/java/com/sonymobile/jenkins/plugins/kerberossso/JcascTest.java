@@ -97,6 +97,20 @@ public class JcascTest {
         ConfigurationAsCode.get().export(baos);
         String out = baos.toString();
         assertThat(out, containsString("kerberosSso"));
+        assertThat(out, containsString("enabled: true"));
+        assertThat(out, containsString("accountName: \"foo\""));
+        assertThat(out, containsString("password: \"{"));
+        assertThat(out, containsString("redirect: \"foo.com\""));
+        assertThat(out, containsString("krb5Location: \""+i.getKrb5Location()+"\""));
+        assertThat(out, containsString("loginLocation: \""+i.getLoginLocation()+"\""));
+        assertThat(out, containsString("loginServerModule: \"spnego-server\""));
+        assertThat(out, containsString("loginClientModule: \"spnego-client\""));
+        assertThat(out, containsString("anonymousAccess: true"));
+        assertThat(out, containsString("allowLocalhost: false"));
+        assertThat(out, containsString("allowBasic: false"));
+        assertThat(out, containsString("allowDelegation: true"));
+        assertThat(out, containsString("allowUnsecureBasic: false"));
+        assertThat(out, containsString("promptNtlm: false"));
     }
 
     @Test

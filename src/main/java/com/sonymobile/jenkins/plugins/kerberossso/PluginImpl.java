@@ -41,7 +41,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.CheckForNull;
@@ -60,6 +59,7 @@ import java.util.logging.Logger;
  */
 @Extension
 @Symbol(PluginImpl.JCASC_NAME)
+@Restricted(NoExternalUse.class)
 // Keeping the obsolete name from times when this extended Plugin
 public class PluginImpl extends GlobalConfiguration {
 
@@ -267,8 +267,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set enabled config parameter.
      * @param enabled value of enabled
      */
-    @Restricted(NoExternalUse.class)
-    void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -276,13 +275,11 @@ public class PluginImpl extends GlobalConfiguration {
      * Set accountName config parameter.
      * @param accountName value of accountName
      */
-    @Restricted(NoExternalUse.class)
-    void setAccountName(String accountName) {
+    public void setAccountName(String accountName) {
         this.accountName = accountName;
     }
 
-    @Restricted(NoExternalUse.class)
-    void setPassword(Secret password) {
+    public void setPassword(Secret password) {
         this.password = password;
     }
 
@@ -290,8 +287,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set redirectEnabled config parameter.
      * @param redirectEnabled value of redirectEnabled
      */
-    @Restricted(NoExternalUse.class)
-    void setRedirectEnabled(boolean redirectEnabled) {
+    public void setRedirectEnabled(boolean redirectEnabled) {
         this.redirectEnabled = redirectEnabled;
     }
 
@@ -299,8 +295,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set redirect config parameter.
      * @param redirect value of redirect
      */
-    @Restricted(NoExternalUse.class)
-    void setRedirect(String redirect) {
+    public void setRedirect(String redirect) {
         this.redirect = redirect;
     }
 
@@ -308,8 +303,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set krb5Location config parameter.
      * @param krb5Location value of krb5Location
      */
-    @Restricted(NoExternalUse.class)
-    void setKrb5Location(String krb5Location) {
+    public void setKrb5Location(String krb5Location) {
         this.krb5Location = krb5Location;
     }
 
@@ -317,8 +311,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set loginLocation config parameter.
      * @param loginLocation value of loginLocation
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginLocation(String loginLocation) {
+    public void setLoginLocation(String loginLocation) {
         this.loginLocation = loginLocation;
     }
 
@@ -326,8 +319,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set loginServerModule config parameter.
      * @param loginServerModule value of loginServerModule
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginServerModule(String loginServerModule) {
+    public void setLoginServerModule(String loginServerModule) {
         this.loginServerModule = loginServerModule;
     }
 
@@ -335,8 +327,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set loginClientModule config parameter.
      * @param loginClientModule value of loginClientModule
      */
-    @Restricted(NoExternalUse.class)
-    void setLoginClientModule(String loginClientModule) {
+    public void setLoginClientModule(String loginClientModule) {
         this.loginClientModule = loginClientModule;
     }
 
@@ -344,8 +335,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set allowLocalhost config parameter.
      * @param allowLocalhost value of allowLocalhost
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowLocalhost(boolean allowLocalhost) {
+    public void setAllowLocalhost(boolean allowLocalhost) {
         this.allowLocalhost = allowLocalhost;
     }
 
@@ -353,8 +343,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set allowBasic config parameter.
      * @param allowBasic value of allowBasic
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowBasic(boolean allowBasic) {
+    public void setAllowBasic(boolean allowBasic) {
         this.allowBasic = allowBasic;
     }
 
@@ -362,8 +351,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set allowDelegation config parameter.
      * @param allowDelegation value of allowDelegation
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowDelegation(boolean allowDelegation) {
+    public void setAllowDelegation(boolean allowDelegation) {
         this.allowDelegation = allowDelegation;
     }
 
@@ -371,8 +359,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set allowUnsecureBasic config parameter.
      * @param allowUnsecureBasic value of allowUnsecureBasic
      */
-    @Restricted(NoExternalUse.class)
-    void setAllowUnsecureBasic(boolean allowUnsecureBasic) {
+    public void setAllowUnsecureBasic(boolean allowUnsecureBasic) {
         this.allowUnsecureBasic = allowUnsecureBasic;
     }
 
@@ -380,8 +367,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set promptNtlm config parameter.
      * @param promptNtlm value of promptNtlm
      */
-    @Restricted(NoExternalUse.class)
-    void setPromptNtlm(boolean promptNtlm) {
+    public void setPromptNtlm(boolean promptNtlm) {
         this.promptNtlm = promptNtlm;
     }
 
@@ -414,7 +400,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether the Filter is currently enabled or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean getEnabled() {
         return enabled;
     }
@@ -423,7 +408,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth account.
      */
-    @Restricted(NoExternalUse.class)
     public String getAccountName() {
         return accountName;
     }
@@ -432,7 +416,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current service / pre-auth password as a secret.
      */
-    @Restricted(NoExternalUse.class)
     public Secret getPassword() {
         return password;
     }
@@ -441,7 +424,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether the user has checked domain redirection or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isRedirectEnabled() {
         return redirectEnabled;
     }
@@ -450,7 +432,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current domain to redirect to, if redirect is enabled.
      */
-    @Restricted(NoExternalUse.class)
     public String getRedirect() {
         return redirect;
     }
@@ -459,7 +440,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current location of the krb5.conf file.
      */
-    @Restricted(NoExternalUse.class)
     public String getKrb5Location() {
         return krb5Location;
     }
@@ -468,7 +448,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current location of the login.conf file.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginLocation() {
         return loginLocation;
     }
@@ -477,7 +456,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current Login-server module.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginServerModule() {
         return loginServerModule;
     }
@@ -486,7 +464,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return the current Login-client module.
      */
-    @Restricted(NoExternalUse.class)
     public String getLoginClientModule() {
         return loginClientModule;
     }
@@ -495,7 +472,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether the user needs to authenticate on non-login URLs.
      */
-    @Restricted(NoExternalUse.class)
     public boolean getAnonymousAccess() {
         return anonymousAccess;
     }
@@ -504,9 +480,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Set login all URLs.
      * @param anonymousAccess Permit anonymous access.
      */
-    //JCasC hack @Restricted(NoExternalUse.class)
-    @DataBoundSetter
-    void setAnonymousAccess(boolean anonymousAccess) {
+    public void setAnonymousAccess(boolean anonymousAccess) {
         this.anonymousAccess = anonymousAccess;
     }
 
@@ -514,7 +488,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether Localhost should be allowed without authentication or not.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowLocalhost() {
         return allowLocalhost;
     }
@@ -523,7 +496,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether unsecure basic should be used if Kerberos fails.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowUnsecureBasic() {
         return allowUnsecureBasic;
     }
@@ -532,7 +504,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether NTLM users should be prompted to use basic authentication.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isPromptNtlm() {
         return promptNtlm;
     }
@@ -541,7 +512,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether servlet delegation should be used.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowDelegation() {
         return allowDelegation;
     }
@@ -550,7 +520,6 @@ public class PluginImpl extends GlobalConfiguration {
      * Used by groovy for data-binding.
      * @return whether Basic authentication should be used if Kerberos fails.
      */
-    @Restricted(NoExternalUse.class)
     public boolean isAllowBasic() {
         return allowBasic;
     }
