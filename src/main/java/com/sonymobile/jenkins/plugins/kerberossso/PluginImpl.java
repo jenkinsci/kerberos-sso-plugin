@@ -26,6 +26,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticationFactory;
 import hudson.Extension;
+import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.init.TermMilestone;
@@ -35,6 +36,7 @@ import hudson.util.PluginServletFilter;
 import hudson.util.Secret;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.GlobalConfigurationCategory;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.codelibs.spnego.SpnegoHttpFilter;
 import org.jenkinsci.Symbol;
@@ -47,6 +49,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -142,6 +146,32 @@ public class PluginImpl extends GlobalConfiguration {
         getInstance().removeFilter();
     }
 
+    // Version 1.6 has made a huge mess accidentally changing the path the config is read from.
+    // Choose the right file to continue with and remove the other.
+    // https://issues.jenkins-ci.org/browse/JENKINS-59840?focusedCommentId=378844&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-378844
+    @Override
+    protected XmlFile getConfigFile() {
+        File rootDir = Jenkins.get().getRootDir();
+        File oldFile = new File(rootDir, "kerberos-sso.xml");
+        File newFile = new File(rootDir, getId() + ".xml");
+
+        // Nothing to do in case the old location is missing (new install) or it exists (never used 1.6)
+        if (newFile.exists()) {
+            try {
+                if (oldFile.exists()) {
+                    Files.deleteIfExists(newFile.toPath());
+                } else {
+                    // Migrate the 1.6 location back (1.6 was new install)
+                    Files.move(newFile.toPath(), oldFile.toPath());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return new XmlFile(oldFile);
+    }
+
     /**
      * Safe and complete removal of the filter from the system.
      * @throws FailedToConfigureFilter if
@@ -166,7 +196,8 @@ public class PluginImpl extends GlobalConfiguration {
     void registerFilter() throws FailedToConfigureFilter {
         try {
             if (enabled) {
-                filter = new KerberosSSOFilter(createConfigMap(), new SpnegoKerberosAuthenticationFactory());
+                Map<String, String> configMap = createConfigMap();
+                filter = new KerberosSSOFilter(configMap, new SpnegoKerberosAuthenticationFactory());
                 PluginServletFilter.addFilter(filter);
             }
         } catch (ServletException e) {
@@ -548,10 +579,14 @@ public class PluginImpl extends GlobalConfiguration {
         config.put(SpnegoHttpFilter.Constants.ALLOW_UNSEC_BASIC, String.valueOf(allowUnsecureBasic));
         config.put(SpnegoHttpFilter.Constants.PROMPT_NTLM, String.valueOf(promptNtlm));
         config.put(SpnegoHttpFilter.Constants.PREAUTH_USERNAME, accountName);
-        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, password.getPlainText());
         config.put(SpnegoHttpFilter.Constants.SERVER_MODULE, loginServerModule);
         config.put(SpnegoHttpFilter.Constants.CLIENT_MODULE, loginClientModule);
         config.put("spnego.logger.level", 1 + "");
+
+        // Log the config with password encrypted, replace with plaintext once logged
+        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, password == null ? "null" : password.getEncryptedValue());
+        logger.info("Creating SSO config map: " + config.toString());
+        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, password.getPlainText());
 
         return config;
     }
