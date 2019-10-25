@@ -538,8 +538,8 @@ public class PluginImpl extends GlobalConfiguration {
      * Creates a map of the current configuration. This is then sent to the Kerberos filter's constructor.
      * @return a mapping between properties and configuration.
      */
-    private Map<String, String> createConfigMap() {
-        Map<String, String> config = new HashMap<String, String>();
+    private @Nonnull Map<String, String> createConfigMap() {
+        Map<String, String> config = new HashMap<>();
         config.put(SpnegoHttpFilter.Constants.ALLOW_BASIC, String.valueOf(allowBasic));
         config.put(SpnegoHttpFilter.Constants.KRB5_CONF, krb5Location);
         config.put(SpnegoHttpFilter.Constants.LOGIN_CONF, "file:" + loginLocation);
