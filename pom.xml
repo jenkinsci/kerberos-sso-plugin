@@ -10,7 +10,7 @@
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
   <artifactId>kerberos-sso</artifactId>
   <packaging>hpi</packaging>
-  <version>1.7</version>
+  <version>1.8-SNAPSHOT</version>
   <name>Kerberos SSO plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
 
@@ -280,7 +280,7 @@
         <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
-      <tag>kerberos-sso-1.7</tag>
+      <tag>HEAD</tag>
   </scm>
 </project>
 
