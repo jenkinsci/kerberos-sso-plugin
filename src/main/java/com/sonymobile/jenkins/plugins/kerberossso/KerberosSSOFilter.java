@@ -45,6 +45,7 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.springframework.dao.DataAccessException;
 
+import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -80,7 +81,7 @@ public class KerberosSSOFilter implements Filter {
 
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
-    /*package for testing*/ final transient Map<String, String> config;
+    /*package for testing*/ final transient @Nonnull Map<String, String> config;
 
     /** Nonnull until initialized */
     private KerberosAuthenticatorFactory authenticatorFactory;
@@ -93,7 +94,7 @@ public class KerberosSSOFilter implements Filter {
      * @param authenticatorFactory the factory used to create the desired authenticator type
      *                             in the init method.
      */
-    public KerberosSSOFilter(Map<String, String> config, KerberosAuthenticatorFactory authenticatorFactory) {
+    /*package*/ KerberosSSOFilter(@Nonnull Map<String, String> config, @Nonnull KerberosAuthenticatorFactory authenticatorFactory) {
         this.config = Collections.unmodifiableMap(config);
         this.authenticatorFactory = authenticatorFactory;
     }
