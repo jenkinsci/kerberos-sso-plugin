@@ -271,7 +271,6 @@ public class PluginImpl extends GlobalConfiguration {
 
             this.password = Secret.fromString((String)data.get("password"));
 
-
             this.krb5Location = (String)data.get("krb5Location");
 
             this.loginServerModule = (String)data.get("loginServerModule");
@@ -310,7 +309,7 @@ public class PluginImpl extends GlobalConfiguration {
         this.accountName = accountName;
     }
 
-    public void setPassword(Secret password) {
+    public void setPassword(@Nonnull Secret password) {
         this.password = password;
     }
 
@@ -583,11 +582,12 @@ public class PluginImpl extends GlobalConfiguration {
         config.put(SpnegoHttpFilter.Constants.CLIENT_MODULE, loginClientModule);
         config.put("spnego.logger.level", 1 + "");
 
+        Secret p = password == null ? Secret.fromString("") : password;
         // Log the config with password encrypted, replace with plaintext once logged
-        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, password == null ? "null" : password.getEncryptedValue());
+        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, p.getEncryptedValue());
         logger.info("Creating SSO config map: " + config.toString());
-        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, password.getPlainText());
 
+        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, p.getPlainText());
         return config;
     }
 }
