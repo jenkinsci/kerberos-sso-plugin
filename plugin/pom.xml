@@ -1,0 +1,240 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>3.34</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
+  <artifactId>kerberos-sso</artifactId>
+  <packaging>hpi</packaging>
+  <version>1.8-SNAPSHOT</version>
+  <name>Kerberos SSO plugin</name>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
+
+  <properties>
+    <jenkins.version>2.150.2</jenkins.version>
+    <java.level>8</java.level>
+  </properties>
+
+  <developers>
+      <developer>
+          <id>fredrikpersson</id>
+          <name>Fredrik Persson</name>
+          <email>fredrik6.persson@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://se.linkedin.com/in/fpersson</url>
+          <roles>
+              <role>architect</role>
+              <role>developer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>joakim_ahle</id>
+          <name>Joakim Ahle</name>
+          <email>joakim.ahle@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://se.linkedin.com/in/joakimahle</url>
+          <roles>
+              <role>architect</role>
+              <role>developer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>rsandell</id>
+          <name>Robert Sandell</name>
+          <email>robert.sandell@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <url>http://www.linkedin.com/in/robertsandell</url>
+          <roles>
+              <role>architect</role>
+              <role>maintainer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>t_westling</id>
+          <name>Tomas Westling</name>
+          <email>tomas.westling@sonymobile.com</email>
+          <organization>Sony Mobile Communications</organization>
+          <roles>
+              <role>maintainer</role>
+          </roles>
+          <timezone>+1</timezone>
+      </developer>
+      <developer>
+          <id>olivergondza</id>
+          <name>Oliver Gondža</name>
+          <email>ogondza@gmail.com</email>
+      </developer>
+  </developers>
+
+  <dependencies>
+      <dependency>
+          <groupId>org.codelibs</groupId>
+          <artifactId>spnego</artifactId>
+          <version>1.0.1</version>
+      </dependency>
+      <dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <version>4.12</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-all</artifactId>
+          <version>1.10.19</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>apache-httpcomponents-client-4-api</artifactId>
+          <version>4.5.3-2.1</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.kohsuke</groupId>
+          <artifactId>access-modifier-suppressions</artifactId>
+          <version>1.16</version>
+      </dependency>
+
+      <dependency>
+          <artifactId>configuration-as-code</artifactId>
+          <groupId>io.jenkins</groupId>
+          <version>1.12</version>
+      </dependency>
+      <dependency>
+          <artifactId>configuration-as-code-support</artifactId>
+          <groupId>io.jenkins.configuration-as-code</groupId>
+          <version>1.12</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <artifactId>configuration-as-code</artifactId>
+          <groupId>io.jenkins</groupId>
+          <version>1.12</version>
+          <scope>test</scope>
+          <type>test-jar</type>
+      </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+    <repository>
+      <id>repo.jenkins-ci.org-repo</id>
+      <url>https://repo.jenkins-ci.org/repo/</url>
+    </repository>
+  </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cobertura-maven-plugin</artifactId>
+                <version>2.7</version>
+                <configuration>
+                    <instrumentation>
+                        <excludes>
+                            <exclude>
+                                **/Messages.class
+                            </exclude>
+                        </excludes>
+                    </instrumentation>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>3.0.4</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>findbugs</goal>
+                        </goals>
+                        <phase>test</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- why is this necessary!? -->
+                <!-- fix attempted at https://github.com/jenkinsci/jenkins/commit/101507f49873de0239ccb7839649ea71187712b2 but apparently failed. -->
+                <groupId>org.codehaus.gmaven</groupId>
+                <artifactId>gmaven-plugin</artifactId>
+                <configuration>
+                    <providerSelection>1.8</providerSelection>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>set-system-properties</goal>
+                        </goals>
+                        <configuration>
+                            <properties>
+                                <property>
+                                    <name>jenkins.version</name>
+                                    <value>2.150.2</value>
+                                </property>
+                            </properties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.4.0</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <scm>
+        <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
+        <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
+      <tag>HEAD</tag>
+  </scm>
+</project>
+

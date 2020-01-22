@@ -1,0 +1,46 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.8-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>ui-tests</artifactId>
+    <packaging>jar</packaging>
+    <version>1.8-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>acceptance-test-harness</artifactId>
+            <version>1.67</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <reuseForks>false</reuseForks>
+                    <environmentVariables>
+                        <!-- Read by ATH -->
+                        <JENKINS_VERSION>2.150.2</JENKINS_VERSION>
+                        <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
+                        <BROWSER>firefox</BROWSER>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
