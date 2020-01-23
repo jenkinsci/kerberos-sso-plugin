@@ -20,8 +20,8 @@
     </developers>
 
     <modules>
-        <module>ui-tests</module>
         <module>plugin</module>
+        <module>ui-tests</module>
     </modules>
 
     <scm>
