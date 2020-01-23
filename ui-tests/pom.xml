@@ -14,32 +14,57 @@
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>1.67</version>
+            <version>1.70-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.10</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
+
+    <repositories>
+        <repository>
+            <id>maven.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/releases/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M4</version>
-                <configuration>
-                    <reuseForks>false</reuseForks>
-                    <environmentVariables>
-                        <!-- Read by ATH -->
-                        <JENKINS_VERSION>2.150.2</JENKINS_VERSION>
-                        <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
-                        <BROWSER>firefox</BROWSER>
-                    </environmentVariables>
-                </configuration>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <executions>
+                    <execution>
+                        <id>run-containerized-ath</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>exec</goal> <!-- preferring exec over java so the runner can pick up details (PWD/artifact name) from context -->
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <commandlineArgs>-cp %classpath org.jenkinsci.test.acceptance.utils.ContainerizedRunner</commandlineArgs>
+                            <environmentVariables>
+                                <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
+                                <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
+                            </environmentVariables>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
