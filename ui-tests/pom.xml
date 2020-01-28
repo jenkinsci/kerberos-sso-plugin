@@ -14,15 +14,13 @@
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>1.70-20200123.212405-5</version>
-<!--            <version>1.70-SNAPSHOT</version>-->
+            <version>1.70-20200127.080503-6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -50,26 +48,18 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
-                <executions>
-                    <execution>
-                        <id>run-containerized-ath</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>exec</goal> <!-- preferring exec over java so the runner can pick up details (PWD/artifact name) from context -->
-                        </goals>
-                        <configuration>
-                            <executable>java</executable>
-                            <commandlineArgs>-cp %classpath org.jenkinsci.test.acceptance.utils.ContainerizedRunner</commandlineArgs>
-                            <environmentVariables>
-                                <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
-                                <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
-                            </environmentVariables>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M4</version>
+                <configuration>
+                    <reuseForks>false</reuseForks>
+                    <environmentVariables>
+                        <!-- Read by ATH -->
+                        <JENKINS_VERSION>2.176.1</JENKINS_VERSION> <!-- Ahead of what plugin requires but needed because of the form-element-path plugin -->
+                        <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
+                        <BROWSER>firefox-container</BROWSER>
+                    </environmentVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
