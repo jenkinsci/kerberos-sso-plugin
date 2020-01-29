@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>1.70-20200127.080503-6</version>
+            <version>1.70-20200129.111702-7</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -44,6 +44,20 @@
             </snapshots>
         </repository>
     </repositories>
+
+    <profiles>
+        <profile>
+            <id>no-ath-on-win</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <surefire.skipTests>true</surefire.skipTests>
+            </properties>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>
