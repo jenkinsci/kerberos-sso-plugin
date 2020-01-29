@@ -11,25 +11,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <developers>
-        <developer>
-            <id>olivergondza</id>
-            <name>Oliver Gondža</name>
-            <email>ogondza@gmail.com</email>
-        </developer>
-    </developers>
-
     <modules>
         <module>plugin</module>
         <module>ui-tests</module>
     </modules>
-
-    <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
-        <tag>HEAD</tag>
-    </scm>
 
     <build>
         <plugins>

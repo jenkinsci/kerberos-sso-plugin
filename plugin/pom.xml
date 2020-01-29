@@ -234,7 +234,7 @@
         <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 </project>
 
