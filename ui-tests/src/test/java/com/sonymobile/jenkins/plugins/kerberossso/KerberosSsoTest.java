@@ -262,15 +262,21 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
             new ProcessBuilder(new Docker().cmd("logs", "-f", cid).toCommandArray()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
 
-            Closeable cleanContainer = () -> {
-                try {
-                    new Docker().cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
-                    new Docker().cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
-                } catch (IOException | InterruptedException e) {
-                    throw new Error("Failed removing container", e);
+            Closeable cleanContainer = new Closeable() {
+                @Override public void close() {
+                    try {
+                        Docker.cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
+                        Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
+                    } catch (IOException | InterruptedException e) {
+                        throw new Error("Failed removing container", e);
+                    }
+                }
+
+                @Override public String toString() {
+                    return "Kill and remove test selenium container for negotiation";
                 }
             };
-            Thread.sleep(5000);
+            Thread.sleep(3000);
 
             FirefoxProfile profile = new FirefoxProfile();
             profile.setAlwaysLoadNoFocusLib(true);
