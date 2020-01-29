@@ -72,6 +72,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -85,6 +87,7 @@ import static org.junit.Assert.assertEquals;
 @Category(DockerTest.class)
 @WithDocker
 public class KerberosSsoTest extends AbstractJUnitTest {
+    private static final Logger LOGGER = Logger.getLogger(KerberosSsoTest.class.getName());
     private static final String AUTHORIZED = "Username: user; Password: [PROTECTED]; Authenticated: true; Details: null; Granted Authorities: authenticated";
 
     @Inject
@@ -128,10 +131,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         verifyTicketAuth(kdc);
     }
 
-    private void verifyTicketAuth(KerberosContainer kdc) throws IOException, InterruptedException {
-        // Get TGT
-        String tokenCache = kdc.getClientTokenCache();
-
+    private void verifyTicketAuth(KerberosContainer kdc) throws IOException {
         // Correctly negotiate in browser
         WebDriver negotiatingDriver = getNegotiatingFirefox(kdc);
 
@@ -182,7 +182,6 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         KerberosContainer kdc = startKdc();
         configureSsoUsingPos(kdc, true, true);
 
-        String tokenCache = kdc.getClientTokenCache();
         WebDriver nego = getNegotiatingFirefox(kdc);
 
         assertNegotiationWorking(nego);
@@ -235,15 +234,16 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     }
 
     private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
+        final String containerName = "selenium container for negotiation";
         final String image = "selenium/standalone-firefox-debug:3.14.0";
         try {
-            Path log = Files.createTempFile("ath-docker-browser", "log");
-            System.out.println("Starting selenium container. Logs in " + log);
+            Path log = diag.touch("negotiation-container-run.log").toPath();
+            LOGGER.info("Starting " + containerName + ". Logs in " + log);
 
             int port = 4445;
             if (!IOUtil.isTcpPortFree(port)) throw new IllegalStateException("Port " + port + " is occupied");
 
-            new Docker().cmd("pull", image).popen().verifyOrDieWith("Failed to pull image " + image);
+            Docker.cmd("pull", image).popen().verifyOrDieWith("Failed to pull image " + image + " for " + containerName);
 
             List<String> args = new ArrayList<>(Arrays.asList(
                     "run", "-d", "--shm-size=2g", "--network=host",
@@ -256,11 +256,11 @@ public class KerberosSsoTest extends AbstractJUnitTest {
             args.add("-e"); args.add("DISPLAY=:1"); // Make sure this does not collide with primary selenium container for ATH (since they are using host net)
             args.add(image);
 
-            ProcessInputStream popen = new Docker().cmd(args.toArray(new String[0])).popen();
+            ProcessInputStream popen = Docker.cmd(args.toArray(new String[0])).popen();
             popen.waitFor();
-            String cid = popen.verifyOrDieWith("Failed to run selenium container").trim();
+            String cid = popen.verifyOrDieWith("Failed to run " + containerName).trim();
 
-            new ProcessBuilder(new Docker().cmd("logs", "-f", cid).toCommandArray()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+            new ProcessBuilder(Docker.cmd("logs", "-f", cid).toCommandArray()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
 
             Closeable cleanContainer = new Closeable() {
                 @Override public void close() {
@@ -268,12 +268,12 @@ public class KerberosSsoTest extends AbstractJUnitTest {
                         Docker.cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
                         Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
                     } catch (IOException | InterruptedException e) {
-                        throw new Error("Failed removing container", e);
+                        throw new Error("Failed removing " + containerName, e);
                     }
                 }
 
                 @Override public String toString() {
-                    return "Kill and remove test selenium container for negotiation";
+                    return "Kill and remove " + containerName;
                 }
             };
             Thread.sleep(3000);
@@ -294,8 +294,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
                         try {
                             remoteWebDriver.quit();
                         } catch (UnreachableBrowserException ex) {
-                            System.err.println("Browser died already");
-                            ex.printStackTrace();
+                            LOGGER.log(Level.WARNING, "Browser died already", ex);
                         }
                     }
 
