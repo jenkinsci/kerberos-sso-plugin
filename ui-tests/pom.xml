@@ -53,7 +53,7 @@
                 </os>
             </activation>
             <properties>
-                <surefire.skipTests>true</surefire.skipTests>
+                <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
     </profiles>
