@@ -30,7 +30,6 @@
         </dependency>
     </dependencies>
 
-
     <repositories>
         <repository>
             <id>maven.jenkins-ci.org</id>
@@ -50,7 +49,7 @@
             <id>no-ath-on-win</id>
             <activation>
                 <os>
-                    <family>Windows</family>
+                    <family>windows</family>
                 </os>
             </activation>
             <properties>
