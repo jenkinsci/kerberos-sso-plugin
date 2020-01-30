@@ -68,7 +68,8 @@
                     <reuseForks>false</reuseForks>
                     <environmentVariables>
                         <!-- Read by ATH -->
-                        <JENKINS_VERSION>2.176.1</JENKINS_VERSION> <!-- Ahead of what plugin requires but needed because of the form-element-path plugin -->
+                        <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
+                        <FORM_ELEMENT_PATH_VERSION>1.8</FORM_ELEMENT_PATH_VERSION> <!-- hold it back not to require core that is too new -->
                         <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
                         <BROWSER>firefox-container</BROWSER>
                     </environmentVariables>
