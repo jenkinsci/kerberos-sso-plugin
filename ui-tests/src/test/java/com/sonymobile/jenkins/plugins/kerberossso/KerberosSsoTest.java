@@ -34,7 +34,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.jenkinsci.test.acceptance.FallbackConfig;
+import org.jenkinsci.test.acceptance.docker.Docker;
 import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
 import org.jenkinsci.test.acceptance.guice.TestCleaner;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
@@ -47,25 +47,33 @@ import org.jenkinsci.test.acceptance.po.GlobalSecurityConfig;
 import org.jenkinsci.test.acceptance.po.JenkinsDatabaseSecurityRealm;
 import org.jenkinsci.test.acceptance.po.PageAreaImpl;
 import org.jenkinsci.test.acceptance.po.User;
+import org.jenkinsci.test.acceptance.utils.IOUtil;
+import org.jenkinsci.utils.process.ProcessInputStream;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.model.Statement;
-import org.openqa.selenium.firefox.FirefoxBinary;
-import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
-import org.openqa.selenium.firefox.GeckoDriverService;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.UnreachableBrowserException;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -79,6 +87,7 @@ import static org.junit.Assert.assertEquals;
 @Category(DockerTest.class)
 @WithDocker
 public class KerberosSsoTest extends AbstractJUnitTest {
+    private static final Logger LOGGER = Logger.getLogger(KerberosSsoTest.class.getName());
     private static final String AUTHORIZED = "Username: user; Password: [PROTECTED]; Authenticated: true; Details: null; Granted Authorities: authenticated";
 
     @Inject
@@ -122,12 +131,9 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         verifyTicketAuth(kdc);
     }
 
-    private void verifyTicketAuth(KerberosContainer kdc) throws IOException, InterruptedException {
-        // Get TGT
-        String tokenCache = kdc.getClientTokenCache();
-
+    private void verifyTicketAuth(KerberosContainer kdc) throws IOException {
         // Correctly negotiate in browser
-        FirefoxDriver negotiatingDriver = getNegotiatingFirefox(kdc, tokenCache);
+        WebDriver negotiatingDriver = getNegotiatingFirefox(kdc);
 
         //visit the page who requires authorization and asks for credentials before visiting unprotected root action "/whoAmI"
         negotiatingDriver.get(jenkins.url.toExternalForm());
@@ -176,13 +182,12 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         KerberosContainer kdc = startKdc();
         configureSsoUsingPos(kdc, true, true);
 
-        String tokenCache = kdc.getClientTokenCache();
-        FirefoxDriver nego = getNegotiatingFirefox(kdc, tokenCache);
+        WebDriver nego = getNegotiatingFirefox(kdc);
 
         assertNegotiationWorking(nego);
     }
 
-    private void assertNegotiationWorking(FirefoxDriver nego) {
+    private void assertNegotiationWorking(WebDriver nego) {
         nego.get(jenkins.url("/whoAmI").toExternalForm());
         assertThat(nego.getPageSource(), not(containsString(AUTHORIZED)));
 
@@ -228,13 +233,104 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         assertThat(out, containsString("Anonymous"));
     }
 
-    private FirefoxDriver getNegotiatingFirefox(KerberosContainer kdc, String tokenCache) {
-        FirefoxOptions firefoxOptions = new FirefoxOptions();
-        FirefoxProfile profile = new FirefoxProfile();
-        profile.setAlwaysLoadNoFocusLib(true);
+    private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
+        final String containerName = "selenium container for negotiation";
+        final String image = "selenium/standalone-firefox-debug:3.14.0";
+        try {
+            Path log = diag.touch("negotiation-container-run.log").toPath();
+            LOGGER.info("Starting " + containerName + ". Logs in " + log);
+
+            int port = 4445;
+            if (!IOUtil.isTcpPortFree(port)) throw new IllegalStateException("Port " + port + " is occupied");
+
+            Docker.cmd("pull", image).popen().verifyOrDieWith("Failed to pull image " + image + " for " + containerName);
+
+            List<String> args = new ArrayList<>(Arrays.asList(
+                    "run", "-d", "--shm-size=2g", "--network=host",
+                    "-v", diag.mkdirs("").getAbsolutePath() + ":/tmp/diagnostics",
+                    "-v", kdc.getClientTokenCache() + ":/tmp/client_token_cache",
+                    "-v", kdc.getKrb5ConfPath() + ":/tmp/krb5.conf"
+            ));
+            getBrowserEnvironment().forEach((n, v) -> { args.add("-e"); args.add(n + "=" + v); });
+            args.add("-e"); args.add("SE_OPTS=-port " + port);
+            args.add("-e"); args.add("DISPLAY=:1"); // Make sure this does not collide with primary selenium container for ATH (since they are using host net)
+            args.add(image);
+
+            ProcessInputStream popen = Docker.cmd(args.toArray(new String[0])).popen();
+            popen.waitFor();
+            String cid = popen.verifyOrDieWith("Failed to run " + containerName).trim();
+
+            new ProcessBuilder(Docker.cmd("logs", "-f", cid).toCommandArray()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+
+            Closeable cleanContainer = new Closeable() {
+                @Override public void close() {
+                    try {
+                        Docker.cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
+                        Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
+                    } catch (IOException | InterruptedException e) {
+                        throw new Error("Failed removing " + containerName, e);
+                    }
+                }
+
+                @Override public String toString() {
+                    return "Kill and remove " + containerName;
+                }
+            };
+            Thread.sleep(3000);
+
+            FirefoxProfile profile = new FirefoxProfile();
+            profile.setAlwaysLoadNoFocusLib(true);
+
+            String trustedUris = getTrustedUris();
+            profile.setPreference("network.negotiate-auth.trusted-uris", trustedUris);
+            profile.setPreference("network.negotiate-auth.delegation-uris", trustedUris);
+
+            try {
+                RemoteWebDriver remoteWebDriver = new RemoteWebDriver(new URL("http://127.0.0.1:" + port + "/wd/hub"), new FirefoxOptions().setProfile(profile));
+                cleaner.addTask(cleanContainer);
+                cleaner.addTask(new Statement() {
+                    @Override
+                    public void evaluate() {
+                        try {
+                            remoteWebDriver.quit();
+                        } catch (UnreachableBrowserException ex) {
+                            LOGGER.log(Level.WARNING, "Browser died already", ex);
+                        }
+                    }
+
+                    @Override public String toString() {
+                        return "Close Kerberos WebDriver after test";
+                    }
+                });
+                return remoteWebDriver;
+            } catch (RuntimeException e) {
+                cleanContainer.close();
+                throw e;
+            } catch (Throwable e) {
+                cleanContainer.close();
+                throw new Error(e);
+            }
+        } catch (InterruptedException e) {
+            throw new Error(e);
+        }
+    }
+
+    private Map<String, String> getBrowserEnvironment() {
+        Map<String,String> environment = new HashMap<>();
+        // Inject config and TGT
+        environment.put("KRB5CCNAME", "/tmp/client_token_cache");
+        environment.put("KRB5_CONFIG", "/tmp/krb5.conf");
+        // Turn debug on
+        environment.put("KRB5_TRACE", "/tmp/diagnostics/krb5_trace.log");
+        environment.put("NSPR_LOG_MODULES", "negotiateauth:5");
+        environment.put("NSPR_LOG_FILE", "/tmp/diagnostics/firefox.nego.log");
+        return environment;
+    }
+
+    private String getTrustedUris() {
         // Allow auth negotiation for jenkins under test
         String url = jenkins.url.toExternalForm();
-        if(url.endsWith("/")){
+        if (url.endsWith("/")) {
             url = url.substring(0, url.length()-1);
         }
         String trustedUris = url;
@@ -243,7 +339,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         if (jenkins_local_hostname != null && !jenkins_local_hostname.isEmpty()) {
             try {
                 // In the case where JENKINS_LOCAL_HOSTNAME is an IP,
-                // we need to add its resolved hostname for auth negociation
+                // we need to add its resolved hostname for auth negotiation
                 String hostName = InetAddress.getByName(jenkins_local_hostname).getCanonicalHostName();
                 trustedUris = trustedUris + ", " + hostName;
             } catch (UnknownHostException e) {
@@ -251,46 +347,9 @@ public class KerberosSsoTest extends AbstractJUnitTest {
                 throw new Error(e);
             }
         }
-        profile.setPreference("network.negotiate-auth.trusted-uris", trustedUris);
-        profile.setPreference("network.negotiate-auth.delegation-uris", trustedUris);
-
-        FirefoxBinary binary = new FirefoxBinary();
-        Map<String,String> environment = new HashMap<>();
-        // Inject config and TGT
-        environment.put("KRB5CCNAME", tokenCache);
-        environment.put("KRB5_CONFIG", kdc.getKrb5ConfPath());
-        // Turn debug on
-        environment.put("KRB5_TRACE", diag.touch("krb5_trace.log").getAbsolutePath());
-        environment.put("NSPR_LOG_MODULES", "negotiateauth:5");
-        environment.put("NSPR_LOG_FILE", diag.touch("firefox.nego.log").getAbsolutePath());
-
-        String display = FallbackConfig.getBrowserDisplay();
-        if (display != null) {
-            environment.put("DISPLAY", display);
-        }
-        GeckoDriverService.Builder builder = new GeckoDriverService.Builder();
-        builder.usingDriverExecutable(new File(System.getProperty(GeckoDriverService.GECKO_DRIVER_EXE_PROPERTY))).usingFirefoxBinary(binary).withEnvironment(environment);
-        //builder.usingFirefoxBinary(binary);
-        firefoxOptions.setBinary(binary);
-        firefoxOptions.setProfile(profile);
-        final FirefoxDriver driver = new FirefoxDriver(builder.build(), firefoxOptions);
-        cleaner.addTask(new Statement() {
-            @Override
-            public void evaluate() {
-                try {
-                    driver.quit();
-                } catch (UnreachableBrowserException ex) {
-                    System.err.println("Browser died already");
-                    ex.printStackTrace();
-                }
-            }
-
-            @Override public String toString() {
-                return "Close Kerberos WebDriver after test";
-            }
-        });
-        return driver;
+        return trustedUris;
     }
+
 
     private void assertUnauthenticatedRequestIsRejected(CloseableHttpClient httpClient) throws IOException {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm());
@@ -375,6 +434,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         GlobalSecurityConfig sc = new GlobalSecurityConfig(jenkins);
         sc.configure();
         JenkinsDatabaseSecurityRealm realm = sc.useRealm(JenkinsDatabaseSecurityRealm.class);
+        realm.allowUsersToSignUp(true);
         sc.save();
         // The password needs to be the same as in kerberos
         return realm.signup().password("ATH").fullname("Full Name")
