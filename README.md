@@ -34,3 +34,10 @@ security:
   kerberosSso:
     enabled: false
 ```
+
+## Troubleshooting
+
+Enable Jenkins logging with following loggers:
+
+- `com.sonymobile.jenkins.plugins.kerberossso`
+- `Spnego` and `SpnegoHttpFilter` (both used by spnego of different versions)
