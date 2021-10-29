@@ -9,7 +9,7 @@
 
 #### **Version 1.4 (released 2017-08-11)**
 
--   Skip authentication for unprotected root actions
+-   Skip authentication for unprotected root actions.
 
 #### **Version 1.3 (released 2016-10-07)**
 

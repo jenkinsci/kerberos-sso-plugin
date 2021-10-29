@@ -6,16 +6,16 @@
 
 # Kerberos SSO plugin
 
-This plugin authenticates a user in Jenkins based on kerberos ticket negotiation.
+This plugin authenticates a user in Jenkins based on Kerberos ticket negotiation.
 
 ## Summary
 
-It reads user's Kerberos ticket and uses it to log the user
-into Jenkins. It is designed to work really well with the Active
-Directory plugin. It can also redirect users that omit specifying a
-domain in their request.
+The Kerberos SSO plugin reads user's Kerberos ticket and logs the user
+into Jenkins based on that information. It is designed to work really well with
+the Active Directory plugin. It can also redirect users that omit specifying 
+a domain in their request.
 
-The authentication can be bypassed for specific request by setting a
+The authentication can be bypassed for a specific request by setting a
 Bypass-Kerberos header in the request. It doesn't matter which value it
 has, the user will be authenticated as anonymous.
 
@@ -28,13 +28,13 @@ for every request.
 -   In order to use the plugin, you need a Kerberos environment. If you
     do, locating the files the plugin needs is the most time consuming
     task.
--   The files mentioned below needs to be readable by Jenkins
+-   The files mentioned must be readable by Jenkins.
 -   A user database. The plugin will not log in a user if it's not found
     in a database. This is where the AD plugin comes in.
 
 ## User guide
 
-The configuration page for Kerberos Single Sign-on plugin is found under
+The configuration page for the Kerberos Single Sign-on plugin is found under
 the global configuration page instead of under Security.
 
 ![](docs/images/kerberos-sso-config.png)
