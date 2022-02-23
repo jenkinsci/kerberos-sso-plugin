@@ -5,13 +5,13 @@
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
     <version>3.34</version>
-    <relativePath/>
+    <relativePath />
   </parent>
 
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
   <artifactId>kerberos-sso</artifactId>
   <packaging>hpi</packaging>
-  <version>1.8-SNAPSHOT</version>
+  <version>1.8</version>
   <name>Kerberos SSO plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
 
