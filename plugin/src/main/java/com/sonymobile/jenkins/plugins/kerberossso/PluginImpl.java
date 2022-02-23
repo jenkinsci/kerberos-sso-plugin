@@ -580,7 +580,8 @@ public class PluginImpl extends GlobalConfiguration {
         config.put(SpnegoHttpFilter.Constants.PREAUTH_USERNAME, accountName);
         config.put(SpnegoHttpFilter.Constants.SERVER_MODULE, loginServerModule);
         config.put(SpnegoHttpFilter.Constants.CLIENT_MODULE, loginClientModule);
-        config.put("spnego.logger.level", 1 + "");
+        config.put(SpnegoHttpFilter.Constants.EXCLUDE_DIRS, "");
+        config.put("spnego.logger.level", "1");
 
         Secret p = password == null ? Secret.fromString("") : password;
         // Log the config with password encrypted, replace with plaintext once logged

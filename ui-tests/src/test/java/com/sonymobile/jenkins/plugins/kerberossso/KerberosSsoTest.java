@@ -34,6 +34,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.jenkinsci.test.acceptance.Matchers;
 import org.jenkinsci.test.acceptance.docker.Docker;
 import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
 import org.jenkinsci.test.acceptance.guice.TestCleaner;
@@ -78,6 +79,7 @@ import java.util.logging.Logger;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.jenkinsci.test.acceptance.Matchers.containsRegexp;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -88,7 +90,7 @@ import static org.junit.Assert.assertEquals;
 @WithDocker
 public class KerberosSsoTest extends AbstractJUnitTest {
     private static final Logger LOGGER = Logger.getLogger(KerberosSsoTest.class.getName());
-    private static final String AUTHORIZED = "Username: user; Password: [PROTECTED]; Authenticated: true; Details: null; Granted Authorities: authenticated";
+    private static final String AUTHORIZED = "user.{1,20}IsAuthenticated\\?:.{1,20}true.{1,20}Authorities:.{1,20}\"authenticated\"";
 
     @Inject
     public DockerContainerHolder<KerberosContainer> kerberos;
@@ -110,7 +112,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         // The global driver is not configured to do so
         driver.manage().deleteAllCookies(); // Logout
         jenkins.visit("/whoAmI"); // 401 Unauthorized
-        assertThat(driver.getPageSource(), not(containsString(AUTHORIZED)));
+        assertThat(driver.getPageSource(), not(containsRegexp(AUTHORIZED)));
     }
 
     @Test
@@ -140,7 +142,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
         negotiatingDriver.get(jenkins.url("/whoAmI").toExternalForm());
         String out = negotiatingDriver.getPageSource();
-        assertThat(out, containsString(AUTHORIZED));
+        assertThat(out, containsRegexp(AUTHORIZED));
 
         // Non-negotiating request should fail
         assertUnauthenticatedRequestIsRejected(getBadassHttpClient());
@@ -163,8 +165,9 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         CloseableHttpResponse response = httpClient.execute(get);
         String phrase = response.getStatusLine().getReasonPhrase();
         String out = IOUtils.toString(response.getEntity().getContent());
-        assertThat(phrase + ": " + out, out, containsString("Full Name"));
-        assertThat(phrase + ": " + out, out, containsString("Granted Authorities: authenticated"));
+        assertThat(phrase + ": " + out, out, containsString("Full User Name"));
+        assertThat(phrase + ": " + out, out, containsString("redacted for security reasons"));
+        assertThat(phrase + ": " + out, out, containsRegexp("Authorities:.{1,50}\"authenticated\""));
         assertEquals(phrase + ": " + out, "OK", phrase);
 
         //reset client
@@ -173,7 +176,8 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
         get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
         response = httpClient.execute(get);
-        assertEquals("Invalid password/token for user: user", response.getStatusLine().getReasonPhrase());
+        response.getEntity().writeTo(System.err);
+        assertEquals("Unauthorized", response.getStatusLine().getReasonPhrase());
     }
 
     @Test
@@ -189,11 +193,11 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
     private void assertNegotiationWorking(WebDriver nego) {
         nego.get(jenkins.url("/whoAmI").toExternalForm());
-        assertThat(nego.getPageSource(), not(containsString(AUTHORIZED)));
+        assertThat(nego.getPageSource(), not(containsRegexp(AUTHORIZED)));
 
         nego.get(jenkins.url("/login").toExternalForm());
         nego.get(jenkins.url("/whoAmI").toExternalForm());
-        assertThat(nego.getPageSource(), containsString(AUTHORIZED));
+        assertThat(nego.getPageSource(), containsRegexp(AUTHORIZED));
     }
 
     @Test
@@ -211,7 +215,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/login");
         get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
-        assertEquals("Invalid password/token for user: user", response.getStatusLine().getReasonPhrase());
+        assertEquals("Unauthorized", response.getStatusLine().getReasonPhrase());
     }
 
     private void assertLoggedInWithCorrectCredentials() throws IOException {
@@ -220,8 +224,8 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
         String phrase = response.getStatusLine().getReasonPhrase();
         String out = IOUtils.toString(response.getEntity().getContent());
-        assertThat(phrase + ": " + out, out, containsString("Full Name"));
-        //assertThat(phrase + ": " + out, out, containsString("Granted Authorities: authenticated"));
+        assertThat(phrase + ": " + out, out, containsString("Full User Name"));
+        //assertThat(phrase + ": " + out, out, containsRegexp("Authorities:.{1,50}\"authenticated\""));
         assertEquals(phrase + ": " + out, "OK", phrase);
     }
 
@@ -229,8 +233,8 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
         String out = IOUtils.toString(response.getEntity().getContent());
-        assertThat(out, not(containsString("Granted Authorities: authenticated")));
-        assertThat(out, containsString("Anonymous"));
+        assertThat(out, not(containsRegexp("Authorities:.{1,50}\"authenticated\"")));
+        assertThat(out, containsString("anonymous"));
     }
 
     private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
@@ -437,7 +441,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         realm.allowUsersToSignUp(true);
         sc.save();
         // The password needs to be the same as in kerberos
-        return realm.signup().password("ATH").fullname("Full Name")
+        return realm.signup().password("ATH").fullname("Full User Name")
                 .email("ath@ath.com")
                 .signup("user");
     }
