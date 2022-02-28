@@ -584,9 +584,9 @@ public class PluginImpl extends GlobalConfiguration {
         config.put("spnego.logger.level", "1");
 
         Secret p = password == null ? Secret.fromString("") : password;
-        // Log the config with password encrypted, replace with plaintext once logged
-        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, p.getEncryptedValue());
-        logger.info("Creating SSO config map: " + config.toString());
+        // Log the config with password removed
+        config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, "****");
+        logger.info("Creating SSO config map: " + config);
 
         config.put(SpnegoHttpFilter.Constants.PREAUTH_PASSWORD, p.getPlainText());
         return config;

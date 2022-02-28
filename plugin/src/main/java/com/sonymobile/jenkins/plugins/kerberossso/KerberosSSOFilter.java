@@ -258,17 +258,6 @@ public class KerberosSSOFilter implements Filter {
      */
     @SuppressRestrictedWarnings(UserSeedProperty.class)
     private void populateUserSeed(HttpServletRequest httpRequest, String username) {
-        VersionNumber current = Jenkins.getVersion();
-        if (current == null) {
-            logger.warning("Unable to determine current Jenkins version");
-            return;
-        }
-
-        if (current.isNewerThan(new VersionNumber("2.150.99")) && current.isOlderThan(new VersionNumber("2.160"))) {
-            // We have to depend on API introduced in 2.150.2 and 1.160 hence we need to skip this for ["2.151", "2.159"]
-            return;
-        }
-
         // Adapted from hudson.security.AuthenticationProcessingFilter2
         HttpSession newSession = httpRequest.getSession();
         if (!UserSeedProperty.DISABLE_USER_SEED) {
@@ -305,20 +294,6 @@ public class KerberosSSOFilter implements Filter {
 
             return contextPath + from;
         }
-
-// We might need this in case `form` parameter is not enough
-//        final String referrer = req.getHeader(HttpHeaders.REFERER);
-//        if (referrer != null && !referrer.isEmpty()) {
-//            try {
-//                // Use domain relative URL starting with Jenkins context path only to make sure the redirect is within
-//                // the application.
-//                final String referrerPath = new URL(referrer).getPath();
-//                if (referrer.startsWith(contextPath)) return referrerPath;
-//                logger.log(Level.FINER, "Referrer does not point to Jenkins application " + referrer);
-//            } catch (MalformedURLException e) {
-//                logger.log(Level.FINER, "Malformed referrer header " + referrer, e);
-//            }
-//        }
 
         // Jenkins dashboard otherwise
         return contextPath;
