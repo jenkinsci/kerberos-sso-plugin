@@ -257,7 +257,7 @@ public class KerberosFilterTest {
         PluginImpl.getInstance().setAnonymousAccess(false);
 
         try (CloseableHttpClient client = HttpClients.createMinimal()) {
-            for (String name : Jenkins.getInstance().getUnprotectedRootActions()) {
+            for (String name : Jenkins.get().getUnprotectedRootActions()) {
                 String url = rule.getURL().toExternalForm() + name;
 
                 HttpGet get = new HttpGet(url);

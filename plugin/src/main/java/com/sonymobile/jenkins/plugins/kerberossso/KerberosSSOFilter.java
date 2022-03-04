@@ -31,19 +31,16 @@ import hudson.Util;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.SecurityRealm;
-import hudson.util.VersionNumber;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import jenkins.security.seed.UserSeedProperty;
 
 import org.codelibs.spnego.SpnegoHttpServletResponse;
 import org.kohsuke.accmod.restrictions.suppressions.SuppressRestrictedWarnings;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.springframework.dao.DataAccessException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
@@ -208,29 +205,25 @@ public class KerberosSSOFilter implements Filter {
                 principalName = principalName.substring(0, principalName.indexOf("@"));
             }
 
-            final Jenkins jenkins = Jenkins.getInstance();
+            final Jenkins jenkins = Jenkins.get();
             try {
                 SecurityRealm realm = jenkins.getSecurityRealm();
-                UserDetails userDetails = realm.loadUserByUsername(principalName);
+                UserDetails userDetails = realm.loadUserByUsername2(principalName);
                 String username = userDetails.getUsername();
                 Authentication authToken = new UsernamePasswordAuthenticationToken(
                         username,
                         userDetails.getPassword(),
                         userDetails.getAuthorities());
 
-                ACL.impersonate(authToken);
+                ACL.impersonate2(authToken);
 
                 populateUserSeed(httpRequest, username);
                 SecurityListener.fireLoggedIn(username);
                 logger.log(Level.FINE, "Authenticated user {0}", username);
             } catch (UsernameNotFoundException e) {
                 logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
-            } catch (NullPointerException e) {
-                logger.log(Level.WARNING, "User authentication failed");
-                e.printStackTrace();
-            } catch (DataAccessException e) {
-                logger.log(Level.WARNING, "No access to user database");
-                e.printStackTrace();
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "User authentication failed", e);
             }
         }
 
@@ -305,8 +298,7 @@ public class KerberosSSOFilter implements Filter {
      * @return true if it is.
      */
     private boolean isAuthenticated() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.isAuthenticated() && !Functions.isAnonymous();
+        return !Functions.isAnonymous();
     }
 
     /**
@@ -319,14 +311,12 @@ public class KerberosSSOFilter implements Filter {
             return true;
         }
 
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins != null) {
-            String rest = request.getPathInfo();
-            for (String name : jenkins.getUnprotectedRootActions()) {
-                if (rest.startsWith("/" + name + "/") || rest.equals("/" + name)) {
-                    logger.log(Level.FINEST, "Authentication not required: Unprotected root action: " + rest);
-                    return true;
-                }
+        Jenkins jenkins = Jenkins.get();
+        String rest = request.getPathInfo();
+        for (String name : jenkins.getUnprotectedRootActions()) {
+            if (rest.startsWith("/" + name + "/") || rest.equals("/" + name)) {
+                logger.log(Level.FINEST, "Authentication not required: Unprotected root action: " + rest);
+                return true;
             }
         }
 

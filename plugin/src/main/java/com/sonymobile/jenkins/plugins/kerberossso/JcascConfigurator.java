@@ -103,7 +103,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
         if (field == null) {
             return def;
         }
-        return Boolean.valueOf(field.asScalar().getValue());
+        return Boolean.parseBoolean(field.asScalar().getValue());
     }
 
     @Override
