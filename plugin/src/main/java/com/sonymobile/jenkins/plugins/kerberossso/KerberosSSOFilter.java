@@ -186,7 +186,7 @@ public class KerberosSSOFilter implements Filter {
                 logger.fine("Authenticating request");
                 principal = authenticator.authenticate(httpRequest, spnegoHttpResponse);
                 if (principal != null) {
-                    logger.log(Level.FINE, "Authenticated principal {0}", principal.getName());
+                    logger.log(Level.INFO, "Authenticated principal {0}", principal.getName());
                 }
             } catch (LoginException e) {
                 logger.log(Level.WARNING, "Failed to fetch spnegoPrincipal name for user");
@@ -219,7 +219,7 @@ public class KerberosSSOFilter implements Filter {
 
                 populateUserSeed(httpRequest, username);
                 SecurityListener.fireLoggedIn(username);
-                logger.log(Level.FINE, "Authenticated user {0}", username);
+                logger.log(Level.INFO, "Authenticated user {0}", username);
             } catch (UsernameNotFoundException e) {
                 logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
             } catch (Exception e) {
@@ -336,7 +336,7 @@ public class KerberosSSOFilter implements Filter {
      * Called if the filter needs to be destroyed.
      */
     public void destroy() {
-        logger.fine("Kerberos filter destroyed");
+        logger.info("Kerberos filter destroyed");
         if (authenticator != null) {
             authenticator.dispose();
         }
