@@ -1,0 +1,17 @@
+security:
+  kerberosSso:
+    enabled: true
+    accountName: foo
+    password: bar
+    redirectEnabled: false
+    redirect: '${REDIRECT}'
+    krb5Location: '${KRB5_CONF}'
+    loginLocation: '${LOGIN_CONF}'
+    loginServerModule: 'spnego-server'
+    loginClientModule: 'spnego-client'
+    anonymousAccess: true
+    allowLocalhost: false
+    allowBasic: false
+    allowDelegation: true
+    allowUnsecureBasic: false
+    promptNtlm: false

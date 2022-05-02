@@ -70,10 +70,9 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setPassword(Secret.fromString(read(m, "password", null)));
 
             String redirect = read(m, "redirect", null);
-            i.setRedirectEnabled(redirect != null);
-            if (redirect != null) {
-                i.setRedirect(redirect);
-            }
+            i.setRedirect(redirect);
+            boolean redirectEnabled = read(m, "redirectEnabled", redirect != null);
+            i.setRedirectEnabled(redirectEnabled);
 
             i.setKrb5Location(read(m, "krb5Location", PluginImpl.DEFAULT_KRB5_CONF));
             i.setLoginLocation(read(m, "loginLocation", PluginImpl.DEFAULT_LOGIN_CONF));
@@ -86,6 +85,11 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setAllowUnsecureBasic(read(m, "allowUnsecureBasic", PluginImpl.DEFAULT_ALLOW_UNSECURE_BASIC));
             i.setPromptNtlm(read(m, "promptNtlm", PluginImpl.DEFAULT_PROMPT_NTLM));
         }
+
+        if (!m.isEmpty()) {
+            throw new ConfiguratorException("Unknown field(s) specified for kerberosSso: " + m.keySet());
+        }
+
         i.removeFilter();
         i.registerFilter();
     }

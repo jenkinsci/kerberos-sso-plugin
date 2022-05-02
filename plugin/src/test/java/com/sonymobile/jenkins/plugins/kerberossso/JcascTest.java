@@ -47,9 +47,9 @@ import java.util.Map;
 
 import static hudson.Functions.isWindows;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
 public class JcascTest {
@@ -68,16 +68,25 @@ public class JcascTest {
     }
 
     @Test
-    public void populate() throws Exception {
+    public void full() throws Exception {
+        testFull(true, "full");
+    }
+
+    @Test
+    public void redirectOff() throws Exception {
+        testFull(false, "redirectOff");
+    }
+
+    private void testFull(boolean redirectEnabled, String file) throws Exception {
         PluginImpl i = PluginImpl.getInstance();
         assertNull(i.getFilter());
-        applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "acme.com")));
+        applyConfig(getJcascYaml(file, Collections.singletonMap("REDIRECT", "acme.com")));
 
         assertTrue(i.getEnabled());
         assertEquals("foo", i.getAccountName());
         assertEquals("bar", i.getPassword().getPlainText());
         assertEquals("acme.com", i.getRedirect());
-        assertTrue(i.isRedirectEnabled());
+        assertEquals(redirectEnabled, i.isRedirectEnabled());
         assertEquals(krb5conf, i.getKrb5Location());
         assertEquals(loginConf, i.getLoginLocation());
         assertEquals("spnego-server", i.getLoginServerModule());
@@ -92,7 +101,7 @@ public class JcascTest {
 
         // Verify Servlet filter gets updated when config changes
         KerberosSSOFilter oldFilter = i.getFilter();
-        applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "foo.com")));
+        applyConfig(getJcascYaml(file, Collections.singletonMap("REDIRECT", "foo.com")));
         assertNotSame(PluginImpl.getInstance().getFilter(), oldFilter);
         assertNotNull(PluginImpl.getInstance().getFilter());
 
@@ -146,6 +155,17 @@ public class JcascTest {
         PluginImpl i = PluginImpl.getInstance();
         assertFalse(i.getEnabled());
         assertNull(i.getFilter());
+    }
+
+    @Test
+    public void extraKeys() throws Exception {
+        try {
+            applyConfig(getJcascYaml("extraKeys"));
+            fail();
+        } catch (ConfiguratorException ex) {
+            ConfiguratorException ce = (ConfiguratorException) ex.getCause();
+            assertEquals("Unknown field(s) specified for kerberosSso: [localhostAllowed]", ce.getMessage());
+        }
     }
 
     private String getJcascYaml(String jcasc) throws IOException, URISyntaxException {
