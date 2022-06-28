@@ -114,7 +114,7 @@
       <dependency>
           <artifactId>configuration-as-code</artifactId>
           <groupId>io.jenkins</groupId>
-          <version>1.12</version>
+          <version>1.55.1</version>
       </dependency>
       <dependency>
           <artifactId>configuration-as-code-support</artifactId>
@@ -125,7 +125,7 @@
       <dependency>
           <artifactId>configuration-as-code</artifactId>
           <groupId>io.jenkins</groupId>
-          <version>1.12</version>
+          <version>1.55.1</version>
           <scope>test</scope>
           <type>test-jar</type>
       </dependency>
