@@ -25,6 +25,8 @@
 package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticationFactory;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
@@ -45,8 +47,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
@@ -114,7 +114,7 @@ public class PluginImpl extends GlobalConfiguration {
     }
 
     @Override
-    public @Nonnull GlobalConfigurationCategory getCategory() {
+    public @NonNull GlobalConfigurationCategory getCategory() {
         return GlobalConfigurationCategory.get(GlobalConfigurationCategory.Security.class);
     }
 
@@ -309,7 +309,7 @@ public class PluginImpl extends GlobalConfiguration {
         this.accountName = accountName;
     }
 
-    public void setPassword(@Nonnull Secret password) {
+    public void setPassword(@NonNull Secret password) {
         this.password = password;
     }
 
@@ -568,7 +568,7 @@ public class PluginImpl extends GlobalConfiguration {
      * Creates a map of the current configuration. This is then sent to the Kerberos filter's constructor.
      * @return a mapping between properties and configuration.
      */
-    private @Nonnull Map<String, String> createConfigMap() {
+    private @NonNull Map<String, String> createConfigMap() {
         Map<String, String> config = new HashMap<>();
         config.put(SpnegoHttpFilter.Constants.ALLOW_BASIC, String.valueOf(allowBasic));
         config.put(SpnegoHttpFilter.Constants.KRB5_CONF, krb5Location);

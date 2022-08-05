@@ -24,12 +24,12 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso.ioc;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.codelibs.spnego.SpnegoAuthenticator;
 import org.codelibs.spnego.SpnegoHttpServletResponse;
 import org.codelibs.spnego.SpnegoPrincipal;
 import org.ietf.jgss.GSSException;
 
-import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -47,7 +47,7 @@ import java.util.Map;
 public class SpnegoKerberosAuthenticationFactory implements KerberosAuthenticatorFactory {
 
     @Override
-    public KerberosAuthenticator getInstance(final @Nonnull Map<String, String> config)
+    public KerberosAuthenticator getInstance(final @NonNull Map<String, String> config)
             throws LoginException, IOException, URISyntaxException, PrivilegedActionException {
 
         try {
@@ -62,7 +62,7 @@ public class SpnegoKerberosAuthenticationFactory implements KerberosAuthenticato
      * @author Robert Sandell &lt;robert.sandell@sonymobile.com&gt;
      */
     private static final class SpnegoKerberosAuthenticator implements KerberosAuthenticator {
-        private final @Nonnull SpnegoAuthenticator spnegoAuthenticator;
+        private final @NonNull SpnegoAuthenticator spnegoAuthenticator;
 
         /**
          * Constructs a new SPNEGO authenticator from passed configuration.
@@ -73,7 +73,7 @@ public class SpnegoKerberosAuthenticationFactory implements KerberosAuthenticato
          * @throws GSSException if authentication goes wrong.
          * @throws PrivilegedActionException if something goes wrong.
          */
-        private SpnegoKerberosAuthenticator(@Nonnull Map<String, String> config)
+        private SpnegoKerberosAuthenticator(@NonNull Map<String, String> config)
                 throws LoginException, FileNotFoundException, URISyntaxException,
                 GSSException, PrivilegedActionException {
 
