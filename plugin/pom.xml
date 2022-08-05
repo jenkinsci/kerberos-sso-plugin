@@ -16,7 +16,7 @@
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
 
   <properties>
-    <jenkins.version>2.303</jenkins.version>
+    <jenkins.version>2.332.4</jenkins.version>
     <java.level>8</java.level>
     <slf4j.version>1.7.36</slf4j.version>
   </properties>
