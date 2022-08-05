@@ -17,7 +17,6 @@
 
   <properties>
     <jenkins.version>2.332.4</jenkins.version>
-    <slf4j.version>1.7.36</slf4j.version>
   </properties>
 
   <developers>
@@ -81,12 +80,6 @@
           <version>1.1.0</version>
       </dependency>
       <dependency>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-          <version>4.13.2</version>
-          <scope>test</scope>
-      </dependency>
-      <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-all</artifactId>
           <version>1.10.19</version>
@@ -95,13 +88,11 @@
       <dependency>
           <groupId>org.jenkins-ci.plugins</groupId>
           <artifactId>apache-httpcomponents-client-4-api</artifactId>
-          <version>4.5.3-2.1</version>
           <scope>test</scope>
       </dependency>
       <dependency>
           <groupId>org.jenkins-ci.modules</groupId>
           <artifactId>sshd</artifactId>
-          <version>3.1.0</version>
           <scope>test</scope>
       </dependency>
       <dependency>
@@ -111,59 +102,31 @@
       </dependency>
 
       <dependency>
-          <artifactId>configuration-as-code</artifactId>
           <groupId>io.jenkins</groupId>
-          <version>1.12</version>
+          <artifactId>configuration-as-code</artifactId>
       </dependency>
       <dependency>
-          <artifactId>configuration-as-code-support</artifactId>
           <groupId>io.jenkins.configuration-as-code</groupId>
-          <version>1.12</version>
+          <artifactId>test-harness</artifactId>
           <scope>test</scope>
-      </dependency>
-      <dependency>
-          <artifactId>configuration-as-code</artifactId>
-          <groupId>io.jenkins</groupId>
-          <version>1.12</version>
-          <scope>test</scope>
-          <type>test-jar</type>
       </dependency>
       <dependency>
           <groupId>org.kohsuke</groupId>
           <artifactId>access-modifier-annotation</artifactId>
-          <version>1.21</version>
-      </dependency>
-      <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>jcl-over-slf4j</artifactId>
-          <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>log4j-over-slf4j</artifactId>
-          <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-jdk14</artifactId>
-          <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-          <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-          <groupId>org.jenkins-ci</groupId>
-          <artifactId>annotation-indexer</artifactId>
-          <version>1.14</version>
-      </dependency>
-      <dependency>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-annotations</artifactId>
-          <version>4.5.3</version>
       </dependency>
   </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.332.x</artifactId>
+                <version>1556.vfc6a_f216e3c6</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
   <repositories>
     <repository>
@@ -204,32 +167,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <reuseForks>false</reuseForks>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>3.0.4</version>
-                <configuration>
-                    <xmlOutput>true</xmlOutput>
-                    <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>findbugs</goal>
-                        </goals>
-                        <phase>test</phase>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!-- why is this necessary!? -->
-                <!-- fix attempted at https://github.com/jenkinsci/jenkins/commit/101507f49873de0239ccb7839649ea71187712b2 but apparently failed. -->
-                <groupId>org.codehaus.gmaven</groupId>
-                <artifactId>gmaven-plugin</artifactId>
-                <configuration>
-                    <providerSelection>1.8</providerSelection>
                 </configuration>
             </plugin>
 

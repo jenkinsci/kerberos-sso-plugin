@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+    Single Sign-On authentication through Kerberos.
+</div>

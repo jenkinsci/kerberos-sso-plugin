@@ -124,14 +124,14 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("").asText(), authenticated());
+        assertThat(wc.goTo("").asNormalizedText(), authenticated());
 
         PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
 
         wc.goTo("login");
-        assertThat(wc.goTo("").asText(), authenticated());
+        assertThat(wc.goTo("").asNormalizedText(), authenticated());
     }
 
     /**
@@ -143,12 +143,12 @@ public class KerberosFilterTest {
 
         PluginImpl.getInstance().setAnonymousAccess(false);
         wc = rule.createWebClient();
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
 
         PluginImpl.getInstance().setAnonymousAccess(true);
         wc = rule.createWebClient();
         wc.goTo("login");
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
     }
 
     @Test
@@ -159,7 +159,7 @@ public class KerberosFilterTest {
 
         wc = rule.createWebClient();
         // Logged as "Username mockUser not registered by Jenkins"
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
     }
 
     /**
@@ -172,7 +172,7 @@ public class KerberosFilterTest {
         // This only makes sense when login is required for all URLs
         PluginImpl.getInstance().setAnonymousAccess(false);
 
-        String userContent = rule.createWebClient().goTo("userContent/").asText();
+        String userContent = rule.createWebClient().goTo("userContent/").asNormalizedText();
         assertThat(userContent, not(authenticated()));
     }
 
@@ -276,17 +276,17 @@ public class KerberosFilterTest {
 
         rule.createFreeStyleProject("login");
         wc = rule.createWebClient();
-        assertThat(wc.goTo("job/login").asText(), not(authenticated()));
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("job/login").asNormalizedText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
 
         HtmlPage page = wc.goTo("login");
         assertThat(page.getWebResponse().getWebRequest().getUrl().toExternalForm(), not(endsWith("/login")));
 
-        assertThat(wc.goTo("").asText(), authenticated());
+        assertThat(wc.goTo("").asNormalizedText(), authenticated());
 
         // This does not work for basic auth at least as browser keeps sending the header with password
-        assertThat(wc.goTo("logout").asText(), not(authenticated()));
-        assertThat(wc.goTo("").asText(), not(authenticated()));
+        assertThat(wc.goTo("logout").asNormalizedText(), not(authenticated()));
+        assertThat(wc.goTo("").asNormalizedText(), not(authenticated()));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class KerberosFilterTest {
         injectDummyCredentials();
 
         HtmlPage page = wc.goTo("login?from=/whoAmI");
-        assertThat(page.asText(), authenticated());
+        assertThat(page.asNormalizedText(), authenticated());
         assertThat(
                 page.getWebResponse().getWebRequest().getUrl().toExternalForm(),
                 equalTo(rule.getURL().toExternalForm() + "whoAmI/")
@@ -314,7 +314,7 @@ public class KerberosFilterTest {
         injectDummyCredentials();
 
         HtmlPage page = wc.goTo("login");
-        assertThat(page.asText(), authenticated());
+        assertThat(page.asNormalizedText(), authenticated());
         assertThat(page.getWebResponse().getWebRequest().getUrl(), equalTo(rule.getURL()));
     }
 
@@ -328,7 +328,7 @@ public class KerberosFilterTest {
 
         // The test Jenkins already includes /jenkins as the context path so send that in the from
         HtmlPage page = wc.goTo("login?from=/jenkins/whoAmI");
-        assertThat(page.asText(), authenticated());
+        assertThat(page.asNormalizedText(), authenticated());
         assertThat(
                 page.getWebResponse().getWebRequest().getUrl().toExternalForm(),
                 equalTo(rule.getURL().toExternalForm() + "whoAmI/")
