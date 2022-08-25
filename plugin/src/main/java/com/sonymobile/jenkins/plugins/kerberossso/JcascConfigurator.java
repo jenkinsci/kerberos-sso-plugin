@@ -114,7 +114,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
     @Override
     public @Nonnull Set<Attribute<PluginImpl, ?>> describe() {
         return new HashSet<>(Arrays.asList(
-                new Attribute<PluginImpl, Boolean>("enabled", String.class).getter(PluginImpl::getEnabled).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("enabled", Boolean.class).getter(PluginImpl::getEnabled).setter(noop()),
                 new Attribute<PluginImpl, String>("accountName", String.class).getter(PluginImpl::getAccountName).setter(noop()),
                 new Attribute<PluginImpl, Secret>("password", String.class).getter(PluginImpl::getPassword).setter(noop()),
                 new Attribute<PluginImpl, String>("redirect", String.class).getter(PluginImpl::getRedirect).setter(noop()),
@@ -122,12 +122,12 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
                 new Attribute<PluginImpl, String>("loginLocation", String.class).getter(PluginImpl::getLoginLocation).setter(noop()),
                 new Attribute<PluginImpl, String>("loginServerModule", String.class).getter(PluginImpl::getLoginServerModule).setter(noop()),
                 new Attribute<PluginImpl, String>("loginClientModule", String.class).getter(PluginImpl::getLoginClientModule).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("anonymousAccess", String.class).getter(PluginImpl::getAnonymousAccess).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("allowLocalhost", String.class).getter(PluginImpl::isAllowLocalhost).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("allowBasic", String.class).getter(PluginImpl::isAllowBasic).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("allowDelegation", String.class).getter(PluginImpl::isAllowDelegation).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("allowUnsecureBasic", String.class).getter(PluginImpl::isAllowUnsecureBasic).setter(noop()),
-                new Attribute<PluginImpl, Boolean>("promptNtlm", String.class).getter(PluginImpl::isPromptNtlm).setter(noop())
+                new Attribute<PluginImpl, Boolean>("anonymousAccess", Boolean.class).getter(PluginImpl::getAnonymousAccess).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowLocalhost", Boolean.class).getter(PluginImpl::isAllowLocalhost).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowBasic", Boolean.class).getter(PluginImpl::isAllowBasic).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowDelegation", Boolean.class).getter(PluginImpl::isAllowDelegation).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("allowUnsecureBasic", Boolean.class).getter(PluginImpl::isAllowUnsecureBasic).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("promptNtlm", Boolean.class).getter(PluginImpl::isPromptNtlm).setter(noop())
         ));
     }
 
