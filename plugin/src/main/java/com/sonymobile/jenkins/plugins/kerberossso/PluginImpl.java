@@ -86,7 +86,7 @@ public class PluginImpl extends GlobalConfiguration {
     private String accountName = DEFAULT_SERVICE_ACCOUNT;
     private Secret password;
     private boolean redirectEnabled = false;
-    private String redirect = "yourdomain.com";
+    private String redirect;
 
     private String krb5Location = DEFAULT_KRB5_CONF;
     private String loginLocation = DEFAULT_LOGIN_CONF;
