@@ -24,7 +24,6 @@
 package com.sonymobile.jenkins.plugins.kerberossso;
 
 import hudson.FilePath;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

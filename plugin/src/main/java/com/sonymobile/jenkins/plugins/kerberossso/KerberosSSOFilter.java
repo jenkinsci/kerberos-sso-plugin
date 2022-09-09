@@ -26,6 +26,7 @@ package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticatorFactory;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Functions;
 import hudson.Util;
 import hudson.model.User;
@@ -42,7 +43,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -78,7 +78,7 @@ public class KerberosSSOFilter implements Filter {
 
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
-    /*package for testing*/ final transient @Nonnull Map<String, String> config;
+    /*package for testing*/ final transient @NonNull Map<String, String> config;
 
     /** Nonnull until initialized */
     private KerberosAuthenticatorFactory authenticatorFactory;
@@ -91,7 +91,7 @@ public class KerberosSSOFilter implements Filter {
      * @param authenticatorFactory the factory used to create the desired authenticator type
      *                             in the init method.
      */
-    /*package*/ KerberosSSOFilter(@Nonnull Map<String, String> config, @Nonnull KerberosAuthenticatorFactory authenticatorFactory) {
+    /*package*/ KerberosSSOFilter(@NonNull Map<String, String> config, @NonNull KerberosAuthenticatorFactory authenticatorFactory) {
         this.config = Collections.unmodifiableMap(config);
         this.authenticatorFactory = authenticatorFactory;
     }

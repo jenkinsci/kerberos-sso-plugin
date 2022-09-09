@@ -35,7 +35,6 @@ import io.jenkins.plugins.casc.model.Mapping;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -116,7 +115,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
     }
 
     @Override
-    public @Nonnull Set<Attribute<PluginImpl, ?>> describe() {
+    public @NonNull Set<Attribute<PluginImpl, ?>> describe() {
         return new HashSet<>(Arrays.asList(
                 new Attribute<PluginImpl, Boolean>("enabled", Boolean.class).getter(PluginImpl::getEnabled).setter(noop()),
                 new Attribute<PluginImpl, String>("accountName", String.class).getter(PluginImpl::getAccountName).setter(noop()),
@@ -148,7 +147,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
     }
 
     @Override
-    public @Nonnull String getName() {
+    public @NonNull String getName() {
         return PluginImpl.JCASC_NAME;
     }
 }
