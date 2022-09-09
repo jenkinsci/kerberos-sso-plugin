@@ -4,7 +4,7 @@
     <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.10-SNAPSHOT</version>
+    <version>1.10</version>
 
     <properties>
         <jenkins.version>2.332.4</jenkins.version>
@@ -20,7 +20,7 @@
         <connection>scm:git:ssh://github.com/jenkinsci/kerberos-sso-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kerberos-sso-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
-        <tag>HEAD</tag>
+        <tag>parent-1.10</tag>
     </scm>
 
     <build>
