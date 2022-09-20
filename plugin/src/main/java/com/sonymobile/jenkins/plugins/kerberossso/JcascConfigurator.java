@@ -83,10 +83,12 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setAllowDelegation(read(m, "allowDelegation", PluginImpl.DEFAULT_ALLOW_DELEGATION));
             i.setAllowUnsecureBasic(read(m, "allowUnsecureBasic", PluginImpl.DEFAULT_ALLOW_UNSECURE_BASIC));
             i.setPromptNtlm(read(m, "promptNtlm", PluginImpl.DEFAULT_PROMPT_NTLM));
-        }
 
-        if (!m.isEmpty()) {
-            throw new ConfiguratorException("Unknown field(s) specified for kerberosSso: " + m.keySet());
+            // Do not check for emptiness when plugin not enabled. Otherwise, we would have to read, and maybe even validate
+            // them all forcing user to correct the config they are trying to deactivate.
+            if (!m.isEmpty()) {
+                throw new ConfiguratorException("Unknown field(s) specified for kerberosSso: " + m.keySet());
+            }
         }
 
         i.removeFilter();
