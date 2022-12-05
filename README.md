@@ -152,7 +152,7 @@ wiki.
     # Write the following into a terminal:
     sudo net ads keytab list
     # If the server is correctly set up, the keytab will contain rows looking something like this: HTTP/HOSTNAME01@INTERNALDOMAIN.NET
-    # The important part here is the HTTP principal. If it doesn't contain such a row, type the following:
+    # The important part here is the HTTP principal. If it does not contain such a row, issue the following command to add it:
     sudo net ads keytab add \-P HTTP
     # Run the *list* agaom command to verify that the keytab now contains HTTP entries.
     ```
