@@ -30,6 +30,26 @@ for every request.
 -   A user database provided by Security Realm. The plugin will not log in a user if it's not found
     in a database. 
 
+## Configuration as a Code
+
+Enable Kerberos SSO:
+
+```yaml
+security:
+  kerberosSso:
+    enabled: true
+    krb5Location: '/etc/krb5.conf'
+    loginLocation: '/etc/login.conf'
+    loginServerModule: 'spnego-server'
+    loginClientModule: 'spnego-client'
+    anonymousAccess: true
+    allowLocalhost: false
+    allowBasic: true
+    allowDelegation: false
+    allowUnsecureBasic: false
+    promptNtlm: false
+```
+
 ## User guide
 
 The configuration page for the Kerberos Single Sign-on plugin under Configure Global Security.
