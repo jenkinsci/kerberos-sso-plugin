@@ -13,7 +13,7 @@
   <packaging>hpi</packaging>
   <version>1.11-SNAPSHOT</version>
   <name>Kerberos SSO plugin</name>
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Kerberos+SSO+Plugin</url>
+  <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
 
   <properties>
     <jenkins.version>2.332.4</jenkins.version>
