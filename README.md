@@ -64,7 +64,7 @@ wiki.
 
 -   **Location of krb5.conf** defaults to "/etc/krb5.conf". Also, if the
     user enters other information in that field, and the file is not
-    found at that location, it will head back to "/etc/krb5.conf" to
+    found at that location, it looks for the file in "/etc/krb5.conf"
     look for the file. If you have a Kerberos environment, probably all
     users have this file. The *libdefaults* section tells Spnego which
     encryption types are used in the realm and *realms* tells Spnego
