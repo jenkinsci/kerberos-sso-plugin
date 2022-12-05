@@ -41,7 +41,7 @@ the global configuration page instead of under Security.
 
 The logout button is still visible for practical reasons. It refreshes
 the session and authentication when the user presses it, but the user
-won't notice the effect since he's immediately logged in again.
+is immediately logged in again so will not notice the effect.
 
 ## Setup guide
 
