@@ -46,7 +46,7 @@ is immediately logged in again so will not notice the effect.
 ## Setup guide
 
 Since this plugin took us so long to set up correctly, we'll provide a
-short list of steps and hints on how this setup can be done. Some of
+This is a short list of steps and hints for setting up this plugin.. Some of
 these tips can also be found in the help links in the configuration
 page. This guide is for a server using **Linux**. We have not
 successfully configured the plugin to run on a Windows server. Please
