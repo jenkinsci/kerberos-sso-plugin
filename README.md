@@ -157,7 +157,7 @@ wiki.
     # Run the *list* agaom command to verify that the keytab now contains HTTP entries.
     ```
 
-    Another important parameter is the isInitiator="false" parameter to
+    Another important parameter is the `isInitiator="false"` parameter to
     spnego-server. In this context, the client initiates the
     authorization by requesting a web page.  
     We have left the parameter list for the client empty. This is
