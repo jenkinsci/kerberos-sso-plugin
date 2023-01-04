@@ -11,7 +11,7 @@
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
   <artifactId>kerberos-sso</artifactId>
   <packaging>hpi</packaging>
-  <version>1.11</version>
+  <version>1.12-SNAPSHOT</version>
   <name>Kerberos SSO plugin</name>
   <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
 
