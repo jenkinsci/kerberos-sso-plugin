@@ -1,11 +1,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+  <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.jenkins.tools.bom</groupId>
+            <artifactId>bom-2.387.x</artifactId>
+            <version>1945.v13a_1306588ff</version>
+            <scope>import</scope>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.45</version>
-    <relativePath />
+    <version>4.54</version>
   </parent>
 
   <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
@@ -16,7 +27,7 @@
   <url>https://github.com/jenkinsci/kerberos-sso-plugin</url>
 
   <properties>
-    <jenkins.version>2.332.4</jenkins.version>
+    <jenkins.version>2.387.1</jenkins.version>
   </properties>
 
   <developers>
@@ -77,12 +88,11 @@
       <dependency>
           <groupId>org.codelibs</groupId>
           <artifactId>spnego</artifactId>
-          <version>1.1.0</version>
+          <version>1.1.1</version>
       </dependency>
       <dependency>
           <groupId>org.mockito</groupId>
-          <artifactId>mockito-all</artifactId>
-          <version>1.10.19</version>
+          <artifactId>mockito-core</artifactId>
           <scope>test</scope>
       </dependency>
       <dependency>
@@ -98,9 +108,11 @@
       <dependency>
           <groupId>org.kohsuke</groupId>
           <artifactId>access-modifier-suppressions</artifactId>
-          <version>1.30</version>
       </dependency>
-
+      <dependency>
+          <groupId>org.kohsuke</groupId>
+          <artifactId>access-modifier-annotation</artifactId>
+      </dependency>
       <dependency>
           <groupId>io.jenkins</groupId>
           <artifactId>configuration-as-code</artifactId>
@@ -110,23 +122,7 @@
           <artifactId>test-harness</artifactId>
           <scope>test</scope>
       </dependency>
-      <dependency>
-          <groupId>org.kohsuke</groupId>
-          <artifactId>access-modifier-annotation</artifactId>
-      </dependency>
   </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.332.x</artifactId>
-                <version>1556.vfc6a_f216e3c6</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
   <repositories>
     <repository>
@@ -177,7 +173,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.4.0</version>
+                <version>3.0.5</version>
                 <configuration>
                     <xmlOutput>true</xmlOutput>
                     <excludeFilterFile>findbugs-exclude.xml</excludeFilterFile>
