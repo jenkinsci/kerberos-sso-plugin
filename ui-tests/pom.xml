@@ -1,6 +1,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+  <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.jenkins.tools.bom</groupId>
+            <artifactId>bom-2.387.x</artifactId>
+            <version>1945.v13a_1306588ff</version>
+            <scope>import</scope>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+  </dependencyManagement>
+
     <parent>
         <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
         <artifactId>parent</artifactId>
@@ -10,22 +22,26 @@
     <artifactId>ui-tests</artifactId>
     <packaging>jar</packaging>
     <version>1.12-SNAPSHOT</version>
-
     <properties>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>5478.vb_b_cd04943676</version>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>acceptance-test-harness</artifactId>
+            <version>5534.vcb_64728b_649b_</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.10</version>
+            <version>4.5.14</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

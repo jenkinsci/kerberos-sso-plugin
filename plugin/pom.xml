@@ -29,6 +29,8 @@
 
   <properties>
     <jenkins.version>2.387.1</jenkins.version>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
   <developers>
@@ -87,6 +89,11 @@
 
   <dependencies>
       <dependency>
+          <groupId>org.codelibs</groupId>
+          <artifactId>spnego</artifactId>
+          <version>1.1.1</version>
+      </dependency>
+      <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-core</artifactId>
           <scope>test</scope>
@@ -104,22 +111,26 @@
       <dependency>
           <groupId>org.kohsuke</groupId>
           <artifactId>access-modifier-suppressions</artifactId>
-          <version>1.16</version>
+          <version>1.30</version>
       </dependency>
       <dependency>
           <groupId>org.kohsuke</groupId>
           <artifactId>access-modifier-annotation</artifactId>
       </dependency>
       <dependency>
-          <groupId>io.jenkins</groupId>
-          <artifactId>configuration-as-code</artifactId>
+        <groupId>io.jenkins</groupId>
+        <artifactId>configuration-as-code</artifactId>
       </dependency>
       <dependency>
-          <groupId>io.jenkins.configuration-as-code</groupId>
-          <artifactId>test-harness</artifactId>
-          <scope>test</scope>
+        <groupId>io.jenkins.configuration-as-code</groupId>
+        <artifactId>test-harness</artifactId>
       </dependency>
-
+      <dependency>
+        <groupId>org.jenkins-ci.main</groupId>
+        <artifactId>jenkins-test-harness</artifactId>
+        <version>1949.vb_b_37feefe78c</version>
+        <scope>test</scope>
+      </dependency>
   </dependencies>
 
   <repositories>
