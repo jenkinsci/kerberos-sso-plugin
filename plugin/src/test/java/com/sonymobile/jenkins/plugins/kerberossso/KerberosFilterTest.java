@@ -337,7 +337,7 @@ public class KerberosFilterTest {
 
     private void injectDummyCredentials() {
         String dummyRealmCreds = "mockUser:mockUser";
-        wc.addRequestHeader("Authorization", "Basic " + Base64.getEncoder().encode(dummyRealmCreds.getBytes()));
+        wc.addRequestHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(dummyRealmCreds.getBytes()));
     }
 
     private Matcher<String> authenticated() {
