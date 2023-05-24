@@ -89,7 +89,6 @@
                     <environmentVariables>
                         <!-- Read by ATH -->
                         <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
-                        <FORM_ELEMENT_PATH_VERSION>1.9</FORM_ELEMENT_PATH_VERSION> <!-- hold it back not to require core that is too new -->
                         <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
                         <BROWSER>firefox-container</BROWSER>
                     </environmentVariables>
