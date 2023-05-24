@@ -385,7 +385,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
      */
     private void configureSsoUsingPos(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) {
         // Turn Jenkins side debugging on
-        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true'); System.setProperty('sun.security.spnego.debug', 'true');");
+        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true');System.setProperty('sun.security.spnego.debug', 'true');System.setProperty('jdk.xml.xpathExprGrpLimit', '0');System.setProperty('jdk.xml.xpathExprOpLimit', '0');System.setProperty('jdk.xml.xpathTotalOpLimit', '0');");
 
         GlobalSecurityConfig s = new GlobalSecurityConfig(jenkins);
         s.configure();
