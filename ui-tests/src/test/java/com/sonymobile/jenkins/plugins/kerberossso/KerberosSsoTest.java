@@ -239,7 +239,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
     private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
         final String containerName = "selenium container for negotiation";
-        final String image = "selenium/standalone-firefox:4.9.1-20230508";
+        final String image = "selenium/standalone-firefox:latest";
 
         try {
             Path log = diag.touch("negotiation-container-run.log").toPath();
@@ -385,7 +385,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
      */
     private void configureSsoUsingPos(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) {
         // Turn Jenkins side debugging on
-        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true');System.setProperty('sun.security.spnego.debug', 'true');System.setProperty('jdk.xml.xpathExprGrpLimit', '0');System.setProperty('jdk.xml.xpathExprOpLimit', '0');System.setProperty('jdk.xml.xpathTotalOpLimit', '0');");
+        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true');System.setProperty('sun.security.spnego.debug', 'true');");
 
         GlobalSecurityConfig s = new GlobalSecurityConfig(jenkins);
         s.configure();
