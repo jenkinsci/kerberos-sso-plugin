@@ -25,9 +25,6 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <jdk.xml.xpathExprGrpLimit>0</jdk.xml.xpathExprGrpLimit>
-        <jdk.xml.xpathExprOpLimit>0</jdk.xml.xpathExprOpLimit>
-        <jdk.xml.xpathTotalOpLimit>0</jdk.xml.xpathTotalOpLimit>
     </properties>
     <dependencies>
         <dependency>
@@ -89,6 +86,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M9</version>
                 <configuration>
+                    <systemPropertyVariables>
+                        <jdk.xml.xpathExprGrpLimit>0</jdk.xml.xpathExprGrpLimit>
+                        <jdk.xml.xpathExprOpLimit>0</jdk.xml.xpathExprOpLimit>
+                        <jdk.xml.xpathTotalOpLimit>0</jdk.xml.xpathTotalOpLimit>
+                    </systemPropertyVariables>
                     <environmentVariables>
                         <!-- Read by ATH -->
                         <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
