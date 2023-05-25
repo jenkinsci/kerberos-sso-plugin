@@ -25,6 +25,9 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <jdk.xml.xpathExprGrpLimit>0</jdk.xml.xpathExprGrpLimit>
+        <jdk.xml.xpathExprOpLimit>0</jdk.xml.xpathExprOpLimit>
+        <jdk.xml.xpathTotalOpLimit>0</jdk.xml.xpathTotalOpLimit>
     </properties>
     <dependencies>
         <dependency>
@@ -90,9 +93,6 @@
                         <!-- Read by ATH -->
                         <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
                         <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
-                        <jdk.xml.xpathExprGrpLimit>0</jdk.xml.xpathExprGrpLimit>
-                        <jdk.xml.xpathExprOpLimit>0</jdk.xml.xpathExprOpLimit>
-                        <jdk.xml.xpathTotalOpLimit>0</jdk.xml.xpathTotalOpLimit>
                         <BROWSER>firefox-container</BROWSER>
                     </environmentVariables>
                 </configuration>
