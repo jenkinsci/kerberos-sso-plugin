@@ -270,8 +270,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
             Closeable cleanContainer = new Closeable() {
                 @Override public void close() {
                     try {
-                        Docker.cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
-                        Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
+                        Docker.cmd("rm", "-f ", cid).popen().verifyOrDieWith("Failed to rm " + cid);
                     } catch (IOException | InterruptedException e) {
                         throw new Error("Failed removing " + containerName, e);
                     }
