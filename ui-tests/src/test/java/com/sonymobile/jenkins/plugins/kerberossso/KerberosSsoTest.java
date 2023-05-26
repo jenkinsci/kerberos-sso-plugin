@@ -52,6 +52,7 @@ import org.jenkinsci.utils.process.ProcessInputStream;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.model.Statement;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
@@ -141,7 +142,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         negotiatingDriver.get(jenkins.url.toExternalForm());
 
         negotiatingDriver.get(jenkins.url("/whoAmI").toExternalForm());
-        String out = negotiatingDriver.getPageSource();
+        String out = String.valueOf(negotiatingDriver.findElement(By.id("main-panel")));
         assertThat(out, containsRegexp(AUTHORIZED));
 
         // Non-negotiating request should fail
