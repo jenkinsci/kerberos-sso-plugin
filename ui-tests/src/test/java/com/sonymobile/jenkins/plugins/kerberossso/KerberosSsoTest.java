@@ -266,12 +266,12 @@ public class KerberosSsoTest extends AbstractJUnitTest {
             String cid = popen.verifyOrDieWith("Failed to run " + containerName).trim();
 
             new ProcessBuilder(Docker.cmd("logs", "-f", cid).toCommandArray()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
-
+            String cmdStr = "ps " + "-a";
             Closeable cleanContainer = new Closeable() {
                 @Override public void close() {
-                    try {
-                        Docker.cmd("ps -a").popen().verifyOrDieWith("Docker ps " + cid);
-                        Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
+                    try { 
+                        Docker.cmd(cmdStr).popen().verifyOrDieWith("Docker ps " + cid);
+                        //Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
                     } catch (IOException | InterruptedException e) {
                         throw new Error("Failed removing " + containerName, e);
                     }
