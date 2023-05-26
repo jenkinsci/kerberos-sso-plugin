@@ -239,7 +239,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
     private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
         final String containerName = "selenium container for negotiation";
-        final String image = "selenium/standalone-firefox:latest";
+        final String image = "selenium/standalone-firefox-debug:latest";
 
         try {
             Path log = diag.touch("negotiation-container-run.log").toPath();
