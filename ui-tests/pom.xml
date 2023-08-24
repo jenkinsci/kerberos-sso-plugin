@@ -1,6 +1,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+  <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.jenkins.tools.bom</groupId>
+            <artifactId>bom-2.387.x</artifactId>
+            <version>1945.v13a_1306588ff</version>
+            <scope>import</scope>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+  </dependencyManagement>
+
     <parent>
         <groupId>com.sonymobile.jenkins.plugins.kerberos-sso</groupId>
         <artifactId>parent</artifactId>
@@ -10,22 +22,31 @@
     <artifactId>ui-tests</artifactId>
     <packaging>jar</packaging>
     <version>1.12-SNAPSHOT</version>
-
     <properties>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>acceptance-test-harness</artifactId>
-            <version>5534.vcb_64728b_649b_</version>
+            <version>5568.v2b_9ea_7d7ea_98</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.15.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.15.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.10</version>
+            <version>4.5.14</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -65,10 +86,14 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
+                    <systemPropertyVariables>
+                        <jdk.xml.xpathExprGrpLimit>0</jdk.xml.xpathExprGrpLimit>
+                        <jdk.xml.xpathExprOpLimit>0</jdk.xml.xpathExprOpLimit>
+                        <jdk.xml.xpathTotalOpLimit>0</jdk.xml.xpathTotalOpLimit>
+                    </systemPropertyVariables>
                     <environmentVariables>
                         <!-- Read by ATH -->
                         <JENKINS_VERSION>${jenkins.version}</JENKINS_VERSION>
-                        <FORM_ELEMENT_PATH_VERSION>1.9</FORM_ELEMENT_PATH_VERSION> <!-- hold it back not to require core that is too new -->
                         <LOCAL_JARS>../plugin/target/kerberos-sso.hpi</LOCAL_JARS>
                         <BROWSER>firefox-container</BROWSER>
                     </environmentVariables>

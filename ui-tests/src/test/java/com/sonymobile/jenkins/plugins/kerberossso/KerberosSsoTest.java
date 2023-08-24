@@ -24,7 +24,7 @@
 package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.google.inject.Inject;
-import hudson.remoting.Base64;
+import java.util.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.client.config.AuthSchemes;
@@ -52,6 +52,7 @@ import org.jenkinsci.utils.process.ProcessInputStream;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runners.model.Statement;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
@@ -65,6 +66,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -140,7 +142,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         negotiatingDriver.get(jenkins.url.toExternalForm());
 
         negotiatingDriver.get(jenkins.url("/whoAmI").toExternalForm());
-        String out = negotiatingDriver.getPageSource();
+        String out = String.valueOf(negotiatingDriver.findElement(By.id("main-panel")));
         assertThat(out, containsRegexp(AUTHORIZED));
 
         // Non-negotiating request should fail
@@ -160,10 +162,10 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
         // Correct credentials provided
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:ATH".getBytes()));
+        get.setHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("user:ATH".getBytes()));
         CloseableHttpResponse response = httpClient.execute(get);
         String phrase = response.getStatusLine().getReasonPhrase();
-        String out = IOUtils.toString(response.getEntity().getContent());
+        String out = IOUtils.toString(response.getEntity().getContent(),Charset.defaultCharset());
         assertThat(phrase + ": " + out, out, containsString("Full User Name"));
         assertThat(phrase + ": " + out, out, containsString("redacted for security reasons"));
         assertThat(phrase + ": " + out, out, containsRegexp("Authorities:.{1,50}\"authenticated\""));
@@ -173,7 +175,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         httpClient = getBadassHttpClient();
         // Incorrect credentials provided
         get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
+        get.setHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("user:WRONG_PASSWD".getBytes()));
         response = httpClient.execute(get);
         response.getEntity().writeTo(System.err);
         assertEquals("Unauthorized", response.getStatusLine().getReasonPhrase());
@@ -212,17 +214,17 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
     private void assertRejectedWithIncorrectCredentials() throws IOException {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/login");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:WRONG_PASSWD".getBytes()));
+        get.setHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("user:WRONG_PASSWD".getBytes()));
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
         assertEquals("Unauthorized", response.getStatusLine().getReasonPhrase());
     }
 
     private void assertLoggedInWithCorrectCredentials() throws IOException {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/login");
-        get.setHeader("Authorization", "Basic " + Base64.encode("user:ATH".getBytes()));
+        get.setHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("user:ATH".getBytes()));
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
         String phrase = response.getStatusLine().getReasonPhrase();
-        String out = IOUtils.toString(response.getEntity().getContent());
+        String out = IOUtils.toString(response.getEntity().getContent(),Charset.defaultCharset());
         assertThat(phrase + ": " + out, out, containsString("Full User Name"));
         //assertThat(phrase + ": " + out, out, containsRegexp("Authorities:.{1,50}\"authenticated\""));
         assertEquals(phrase + ": " + out, "OK", phrase);
@@ -231,14 +233,15 @@ public class KerberosSsoTest extends AbstractJUnitTest {
     private void assertAnonymousWithoutCredentials() throws IOException {
         HttpGet get = new HttpGet(jenkins.url.toExternalForm() + "/whoAmI");
         CloseableHttpResponse response = getBadassHttpClient().execute(get);
-        String out = IOUtils.toString(response.getEntity().getContent());
+        String out = IOUtils.toString(response.getEntity().getContent(),Charset.defaultCharset());
         assertThat(out, not(containsRegexp("Authorities:.{1,50}\"authenticated\"")));
         assertThat(out, containsString("anonymous"));
     }
 
     private WebDriver getNegotiatingFirefox(KerberosContainer kdc) throws IOException {
         final String containerName = "selenium container for negotiation";
-        final String image = "selenium/standalone-firefox-debug:3.14.0";
+        final String image = "selenium/standalone-firefox-debug:latest";
+
         try {
             Path log = diag.touch("negotiation-container-run.log").toPath();
             LOGGER.info("Starting " + containerName + ". Logs in " + log);
@@ -267,9 +270,9 @@ public class KerberosSsoTest extends AbstractJUnitTest {
 
             Closeable cleanContainer = new Closeable() {
                 @Override public void close() {
-                    try {
-                        Docker.cmd("kill", cid).popen().verifyOrDieWith("Failed to kill " + cid);
-                        Docker.cmd("rm", cid).popen().verifyOrDieWith("Failed to rm " + cid);
+                    try { 
+                        LOGGER.info("Cleaning " + cid + args.toArray(new String[0]));
+                        Docker.cmd("ps").popen().verifyOrDieWith("Failed to rm " + cid);
                     } catch (IOException | InterruptedException e) {
                         throw new Error("Failed removing " + containerName, e);
                     }
@@ -383,7 +386,7 @@ public class KerberosSsoTest extends AbstractJUnitTest {
      */
     private void configureSsoUsingPos(KerberosContainer kdc, boolean allowAnonymous, boolean allowBasic) {
         // Turn Jenkins side debugging on
-        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true'); System.setProperty('sun.security.spnego.debug', 'true');");
+        jenkins.runScript("System.setProperty('sun.security.krb5.debug', 'true');System.setProperty('sun.security.spnego.debug', 'true');");
 
         GlobalSecurityConfig s = new GlobalSecurityConfig(jenkins);
         s.configure();
