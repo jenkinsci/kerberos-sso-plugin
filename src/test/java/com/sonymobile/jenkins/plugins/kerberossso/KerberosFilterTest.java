@@ -28,7 +28,6 @@ import org.htmlunit.html.HtmlPage;
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
 import hudson.FilePath;
 import hudson.model.User;
-import hudson.remoting.Base64;
 import hudson.security.SecurityRealm;
 import hudson.util.PluginServletFilter;
 import jenkins.model.GlobalConfiguration;
@@ -60,6 +59,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Base64;
 import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -336,7 +336,7 @@ public class KerberosFilterTest {
 
     private void injectDummyCredentials() {
         String dummyRealmCreds = "mockUser:mockUser";
-        wc.addRequestHeader("Authorization", "Basic " + Base64.encode(dummyRealmCreds.getBytes()));
+        wc.addRequestHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(dummyRealmCreds.getBytes()));
     }
 
     private Matcher<String> authenticated() {
