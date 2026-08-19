@@ -9,6 +9,8 @@ security:
     loginServerModule: 'spnego-server'
     loginClientModule: 'spnego-client'
     anonymousAccess: true
+    bypassPaths:
+      - '/login'
     allowLocalhost: false
     allowBasic: false
     allowDelegation: true

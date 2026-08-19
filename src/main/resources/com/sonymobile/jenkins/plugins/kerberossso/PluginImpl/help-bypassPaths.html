@@ -1,0 +1,23 @@
+<div>
+  Request paths served without Kerberos negotiation, one per line. A path matches itself and everything
+  below it, so <code>/login</code> covers <code>/login/foo</code> but not <code>/loginSomethingElse</code>.
+
+  <p>
+    Paths Jenkins core already serves anonymously &mdash; <code>/login</code>, <code>/logout</code>,
+    <code>/adjuncts/&#42;</code>, <code>/tcpSlaveAgentListener</code> and the unprotected root actions such as
+    <code>/health</code> and <code>/whoAmI</code> &mdash; are exempt automatically and need not be listed.
+  </p>
+
+  <p>
+    The one case that does need listing is <code>/login</code> when <b>Allow anonymous access</b> is enabled.
+    That option makes <code>/login</code> the only way for a user to explicitly trigger Kerberos negotiation,
+    so it keeps answering <code>401</code>. Inbound agents refuse to connect against that: the remoting
+    agent probes <code>GET /login</code> before every connection attempt and requires a <code>200</code>.
+    Adding <code>/login</code> here restores those agents, at the cost of the explicit SSO login entry point.
+  </p>
+
+  <p>
+    Listing a path only skips Kerberos negotiation for it. It grants no permissions &mdash; Jenkins'
+    own authorization still applies to the resulting anonymous request.
+  </p>
+</div>

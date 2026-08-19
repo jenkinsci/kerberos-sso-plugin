@@ -51,7 +51,11 @@ import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -94,6 +98,7 @@ public class PluginImpl extends GlobalConfiguration {
     private String loginClientModule = DEFAULT_SPNEGO_CLIENT;
 
     private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
+    private List<String> bypassPaths = new ArrayList<>();
     private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
     private boolean allowBasic = DEFAULT_ALLOW_BASIC;
     private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
@@ -276,6 +281,12 @@ public class PluginImpl extends GlobalConfiguration {
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
             this.anonymousAccess = (Boolean)data.get("anonymousAccess");
+
+            // Optional so configs saved before this option existed still submit cleanly
+            this.bypassPaths = data.has("bypassPaths")
+                    ? normalizeBypassPaths(splitBypassPaths((String)data.get("bypassPaths")))
+                    : new ArrayList<>();
+
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
             this.allowBasic = (Boolean)data.get("allowBasic");
             this.allowDelegation = (Boolean)data.get("allowDelegation");
@@ -512,6 +523,66 @@ public class PluginImpl extends GlobalConfiguration {
      */
     public void setAnonymousAccess(boolean anonymousAccess) {
         this.anonymousAccess = anonymousAccess;
+    }
+
+    /**
+     * Request paths that are served without Kerberos negotiation.
+     *
+     * @return Immutable list of normalized paths, never null.
+     */
+    public @NonNull List<String> getBypassPaths() {
+        // Null when read from config saved before this option existed
+        return bypassPaths == null ? Collections.emptyList() : Collections.unmodifiableList(bypassPaths);
+    }
+
+    /**
+     * Set the paths served without Kerberos negotiation.
+     *
+     * @param bypassPaths Paths to exempt. Blank entries are dropped, a leading slash is added when
+     *                    missing and a trailing one removed, so "login" and "/login/" both mean "/login".
+     */
+    public void setBypassPaths(@CheckForNull List<String> bypassPaths) {
+        this.bypassPaths = normalizeBypassPaths(bypassPaths);
+    }
+
+    /**
+     * Used by groovy for data-binding of the multi-line text area.
+     *
+     * @return Configured paths, one per line.
+     */
+    public @NonNull String getBypassPathsString() {
+        return String.join("\n", getBypassPaths());
+    }
+
+    private static @NonNull List<String> splitBypassPaths(@CheckForNull String text) {
+        if (text == null) {
+            return new ArrayList<>();
+        }
+        // Accept newline or comma separated input, normalizeBypassPaths drops the blanks
+        return new ArrayList<>(Arrays.asList(text.split("[\\r\\n,]+")));
+    }
+
+    private static @NonNull List<String> normalizeBypassPaths(@CheckForNull List<String> paths) {
+        List<String> normalized = new ArrayList<>();
+        if (paths == null) {
+            return normalized;
+        }
+        for (String path : paths) {
+            String trimmed = hudson.Util.fixEmptyAndTrim(path);
+            if (trimmed == null) {
+                continue;
+            }
+            if (!trimmed.startsWith("/")) {
+                trimmed = "/" + trimmed;
+            }
+            while (trimmed.length() > 1 && trimmed.endsWith("/")) {
+                trimmed = trimmed.substring(0, trimmed.length() - 1);
+            }
+            if (!"/".equals(trimmed) && !normalized.contains(trimmed)) {
+                normalized.add(trimmed);
+            }
+        }
+        return normalized;
     }
 
     /**

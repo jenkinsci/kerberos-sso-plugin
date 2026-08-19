@@ -32,11 +32,14 @@ import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
+import io.jenkins.plugins.casc.model.Sequence;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static io.jenkins.plugins.casc.Attribute.noop;
@@ -78,6 +81,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setLoginServerModule(read(m, "loginServerModule", PluginImpl.DEFAULT_SPNEGO_SERVER));
             i.setLoginClientModule(read(m, "loginClientModule", PluginImpl.DEFAULT_SPNEGO_CLIENT));
             i.setAnonymousAccess(read(m, "anonymousAccess", PluginImpl.DEFAULT_ANONYMOUS_ACCESS));
+            i.setBypassPaths(readList(m, "bypassPaths"));
             i.setAllowLocalhost(read(m, "allowLocalhost", PluginImpl.DEFAULT_ALLOW_LOCALHOST));
             i.setAllowBasic(read(m, "allowBasic", PluginImpl.DEFAULT_ALLOW_BASIC));
             i.setAllowDelegation(read(m, "allowDelegation", PluginImpl.DEFAULT_ALLOW_DELEGATION));
@@ -101,6 +105,27 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             return def;
         }
         return field.asScalar().getValue();
+    }
+
+    /**
+     * Read a value that may be given as a YAML sequence or as a single scalar.
+     *
+     * @return The values, empty when the key is absent.
+     */
+    private List<String> readList(Mapping m, String key) throws ConfiguratorException {
+        CNode field = m.remove(key);
+        List<String> values = new ArrayList<>();
+        if (field == null) {
+            return values;
+        }
+        if (field instanceof Sequence) {
+            for (CNode item : (Sequence) field) {
+                values.add(item.asScalar().getValue());
+            }
+        } else {
+            values.add(field.asScalar().getValue());
+        }
+        return values;
     }
 
     private boolean read(Mapping m, String key, boolean def) throws ConfiguratorException {
@@ -128,6 +153,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
                 new Attribute<PluginImpl, String>("loginServerModule", String.class).getter(PluginImpl::getLoginServerModule).setter(noop()),
                 new Attribute<PluginImpl, String>("loginClientModule", String.class).getter(PluginImpl::getLoginClientModule).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("anonymousAccess", Boolean.class).getter(PluginImpl::getAnonymousAccess).setter(noop()),
+                new Attribute<PluginImpl, Object>("bypassPaths", String.class).multiple(true).getter(PluginImpl::getBypassPaths).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowLocalhost", Boolean.class).getter(PluginImpl::isAllowLocalhost).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowBasic", Boolean.class).getter(PluginImpl::isAllowBasic).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowDelegation", Boolean.class).getter(PluginImpl::isAllowDelegation).setter(noop()),

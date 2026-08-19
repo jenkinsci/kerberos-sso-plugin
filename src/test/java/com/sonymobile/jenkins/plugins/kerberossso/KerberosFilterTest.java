@@ -268,6 +268,57 @@ public class KerberosFilterTest {
         }
     }
 
+    /**
+     * Jenkins core guarantees /login is served without authentication (it is in
+     * Jenkins#ALWAYS_READABLE_PATHS), and remoting's Engine#pingSuccessful() relies on that to decide the
+     * controller is reachable before every connection attempt. Challenging it strands inbound agents.
+     *
+     * @see <a href="https://issues.jenkins.io/browse/JENKINS-75881">JENKINS-75881</a>
+     */
+    @Test
+    public void alwaysReadablePathsAreNotChallenged() throws Exception {
+        challengeAuthentication();
+        PluginImpl.getInstance().setAnonymousAccess(false);
+
+        assertEquals("/login must not be challenged", HttpServletResponse.SC_OK, statusOf("login"));
+    }
+
+    /**
+     * With anonymous access on, /login is the only way to explicitly trigger negotiation, so it keeps
+     * challenging. This pins that gateway so the exemption above cannot silently remove it.
+     */
+    @Test
+    public void loginPageKeepsChallengingWhenItIsTheSsoGateway() throws Exception {
+        challengeAuthentication();
+        PluginImpl.getInstance().setAnonymousAccess(true);
+
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, statusOf("login"));
+    }
+
+    /**
+     * Escape hatch for the gateway configuration above: an operator can exempt the path explicitly.
+     */
+    @Test
+    public void configuredBypassPathIsNotChallenged() throws Exception {
+        challengeAuthentication();
+        PluginImpl.getInstance().setAnonymousAccess(true);
+        PluginImpl.getInstance().setBypassPaths(Collections.singletonList("/login"));
+
+        assertEquals(HttpServletResponse.SC_OK, statusOf("login"));
+    }
+
+    @Test
+    public void bypassPathCoversDescendantPathsButNotUnrelatedPrefixMatches() throws Exception {
+        challengeAuthentication();
+        PluginImpl.getInstance().setAnonymousAccess(false);
+        // /job is challenged by default, unlike the root actions core already exempts
+        PluginImpl.getInstance().setBypassPaths(Collections.singletonList("/job"));
+        rule.createFreeStyleProject("foo");
+
+        assertEquals(HttpServletResponse.SC_OK, statusOf("job/foo/"));
+        assertEquals("Prefix must match a whole path segment", HttpServletResponse.SC_UNAUTHORIZED, statusOf("jobfoo"));
+    }
+
     @Test
     public void onlyAuthenticateAtLoginPage() throws Exception {
         fakePrincipal("mockUser@TEST.COM");
@@ -337,6 +388,37 @@ public class KerberosFilterTest {
     private void injectDummyCredentials() {
         String dummyRealmCreds = "mockUser:mockUser";
         wc.addRequestHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(dummyRealmCreds.getBytes()));
+    }
+
+    /**
+     * @param path Path relative to the Jenkins root URL.
+     * @return Status code of an unauthenticated GET, without following redirects.
+     */
+    private int statusOf(String path) throws IOException {
+        try (CloseableHttpClient client = HttpClients.createMinimal()) {
+            HttpGet get = new HttpGet(rule.getURL().toExternalForm() + path);
+            try (CloseableHttpResponse response = client.execute(get)) {
+                EntityUtils.consumeQuietly(response.getEntity());
+                return response.getStatusLine().getStatusCode();
+            }
+        }
+    }
+
+    /**
+     * Emulate SPNEGO facing a client that holds no ticket: challenge with 401 and report no principal.
+     * This is what the real authenticator does to every unauthenticated request, and what remoting hits.
+     */
+    private void challengeAuthentication() throws LoginException, IOException, ServletException {
+        KerberosAuthenticator mockAuthenticator = mock(KerberosAuthenticator.class);
+        when(mockAuthenticator.authenticate(any(HttpServletRequest.class), any(HttpServletResponse.class)))
+                .thenAnswer(invocation -> {
+                    HttpServletResponse rsp = invocation.getArgument(1);
+                    rsp.setHeader("WWW-Authenticate", "Negotiate");
+                    rsp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return null;
+                })
+        ;
+        registerFilter(mockAuthenticator);
     }
 
     private Matcher<String> authenticated() {
