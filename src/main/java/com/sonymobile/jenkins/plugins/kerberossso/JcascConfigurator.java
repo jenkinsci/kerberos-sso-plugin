@@ -81,7 +81,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setLoginServerModule(read(m, "loginServerModule", PluginImpl.DEFAULT_SPNEGO_SERVER));
             i.setLoginClientModule(read(m, "loginClientModule", PluginImpl.DEFAULT_SPNEGO_CLIENT));
             i.setAnonymousAccess(read(m, "anonymousAccess", PluginImpl.DEFAULT_ANONYMOUS_ACCESS));
-            i.setBypassPaths(readList(m, "bypassPaths"));
+            i.setBypassPaths(readList(m, "bypassPaths", PluginImpl.DEFAULT_BYPASS_PATHS));
             i.setAllowLocalhost(read(m, "allowLocalhost", PluginImpl.DEFAULT_ALLOW_LOCALHOST));
             i.setAllowBasic(read(m, "allowBasic", PluginImpl.DEFAULT_ALLOW_BASIC));
             i.setAllowDelegation(read(m, "allowDelegation", PluginImpl.DEFAULT_ALLOW_DELEGATION));
@@ -112,12 +112,12 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
      *
      * @return The values, empty when the key is absent.
      */
-    private List<String> readList(Mapping m, String key) throws ConfiguratorException {
+    private List<String> readList(Mapping m, String key, List<String> def) throws ConfiguratorException {
         CNode field = m.remove(key);
-        List<String> values = new ArrayList<>();
         if (field == null) {
-            return values;
+            return def;
         }
+        List<String> values = new ArrayList<>();
         if (field instanceof Sequence) {
             for (CNode item : (Sequence) field) {
                 values.add(item.asScalar().getValue());

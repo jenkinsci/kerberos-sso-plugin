@@ -309,6 +309,8 @@ public class KerberosSSOFilter implements Filter {
      * Mirrors the private {@code Jenkins#ALWAYS_READABLE_PATHS}. Delegating to the public
      * {@code Jenkins#isSubjectToMandatoryReadPermissionCheck} instead is not viable here: its agent JNLP
      * branch dereferences {@code Stapler.getCurrentRequest2()}, which is null this early in the chain.
+     *
+     * TODO drop this copy once core exposes the list, see https://issues.jenkins.io/browse/JENKINS-75881
      */
     private static final List<String> ALWAYS_READABLE_PATHS = Arrays.asList(
             "/404", "/_404", "/_404_simple", "/login", "/loginError", "/logout", "/accessDenied",
@@ -351,7 +353,7 @@ public class KerberosSSOFilter implements Filter {
         Jenkins jenkins = Jenkins.get();
         for (String name : jenkins.getUnprotectedRootActions()) {
             if (matches(rest, "/" + name)) {
-                logger.log(Level.FINEST, "Authentication not required: Unprotected root action: " + rest);
+                logger.log(Level.FINEST, "Authentication not required: Unprotected root action: {0}", rest);
                 return true;
             }
         }

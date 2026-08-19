@@ -28,6 +28,7 @@ import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticati
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.Util;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
@@ -84,6 +85,7 @@ public class PluginImpl extends GlobalConfiguration {
     /*package*/ static final boolean DEFAULT_ALLOW_DELEGATION = false;
     /*package*/ static final boolean DEFAULT_ALLOW_UNSECURE_BASIC = true;
     /*package*/ static final boolean DEFAULT_PROMPT_NTLM = false;
+    /*package*/ static final List<String> DEFAULT_BYPASS_PATHS = Collections.emptyList();
 
     private boolean enabled = false;
 
@@ -98,7 +100,7 @@ public class PluginImpl extends GlobalConfiguration {
     private String loginClientModule = DEFAULT_SPNEGO_CLIENT;
 
     private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
-    private List<String> bypassPaths = new ArrayList<>();
+    private List<String> bypassPaths = new ArrayList<>(DEFAULT_BYPASS_PATHS);
     private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
     private boolean allowBasic = DEFAULT_ALLOW_BASIC;
     private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
@@ -554,6 +556,12 @@ public class PluginImpl extends GlobalConfiguration {
         return String.join("\n", getBypassPaths());
     }
 
+    /**
+     * Splits the raw text area content into individual paths.
+     *
+     * @param text Newline or comma separated paths, possibly null.
+     * @return One entry per path, blanks included as they are dropped by {@link #normalizeBypassPaths}.
+     */
     private static @NonNull List<String> splitBypassPaths(@CheckForNull String text) {
         if (text == null) {
             return new ArrayList<>();
@@ -562,13 +570,23 @@ public class PluginImpl extends GlobalConfiguration {
         return new ArrayList<>(Arrays.asList(text.split("[\\r\\n,]+")));
     }
 
+    /**
+     * Brings configured paths into the form the filter matches against.
+     *
+     * Drops blanks and duplicates, adds a missing leading slash and strips trailing ones, so "login",
+     * "/login" and "/login/" all yield "/login". The bare root is dropped as exempting it would disable
+     * the plugin entirely.
+     *
+     * @param paths Raw paths as configured, possibly null.
+     * @return Normalized paths, never null.
+     */
     private static @NonNull List<String> normalizeBypassPaths(@CheckForNull List<String> paths) {
         List<String> normalized = new ArrayList<>();
         if (paths == null) {
             return normalized;
         }
         for (String path : paths) {
-            String trimmed = hudson.Util.fixEmptyAndTrim(path);
+            String trimmed = Util.fixEmptyAndTrim(path);
             if (trimmed == null) {
                 continue;
             }
