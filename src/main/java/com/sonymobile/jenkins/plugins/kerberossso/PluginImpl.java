@@ -530,6 +530,10 @@ public class PluginImpl extends GlobalConfiguration {
     /**
      * Request paths that are served without Kerberos negotiation.
      *
+     * Deliberately not permission checked: {@link KerberosSSOFilter} consults this for every request,
+     * including unauthenticated ones, so a check here would reject the very traffic it governs. The
+     * user facing accessors {@link #getBypassPathsString} and {@link #setBypassPaths} are checked instead.
+     *
      * @return Immutable list of normalized paths, never null.
      */
     public @NonNull List<String> getBypassPaths() {
@@ -544,6 +548,7 @@ public class PluginImpl extends GlobalConfiguration {
      *                    missing and a trailing one removed, so "login" and "/login/" both mean "/login".
      */
     public void setBypassPaths(@CheckForNull List<String> bypassPaths) {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         this.bypassPaths = normalizeBypassPaths(bypassPaths);
     }
 
@@ -553,6 +558,7 @@ public class PluginImpl extends GlobalConfiguration {
      * @return Configured paths, one per line.
      */
     public @NonNull String getBypassPathsString() {
+        Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
         return String.join("\n", getBypassPaths());
     }
 

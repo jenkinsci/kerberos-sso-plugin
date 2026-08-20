@@ -30,7 +30,9 @@ import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.yaml.YamlSource;
+import jenkins.model.Jenkins;
 import org.apache.tools.ant.filters.StringInputStream;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -157,6 +159,22 @@ public class JcascTest {
         PluginImpl i = PluginImpl.getInstance();
         assertFalse(i.getEnabled());
         assertNull(i.getFilter());
+    }
+
+    /**
+     * The bypassPaths setter is permission checked, and JCasC calls it. If the configuration pass does
+     * not carry an administrator authentication, that check would fail the whole configuration rather
+     * than merely deny a request, so pin the behaviour on a controller with authorization enabled.
+     */
+    @Test
+    public void appliesOnSecuredController() throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.ADMINISTER).everywhere().to("alice"));
+
+        applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "acme.com")));
+
+        assertEquals(Collections.singletonList("/login"), PluginImpl.getInstance().getBypassPaths());
     }
 
     @Test
