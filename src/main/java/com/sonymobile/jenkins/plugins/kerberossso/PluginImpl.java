@@ -530,13 +530,15 @@ public class PluginImpl extends GlobalConfiguration {
     /**
      * Request paths that are served without Kerberos negotiation.
      *
-     * Deliberately not permission checked: {@link KerberosSSOFilter} consults this for every request,
-     * including unauthenticated ones, so a check here would reject the very traffic it governs. The
-     * user facing accessors {@link #getBypassPathsString} and {@link #setBypassPaths} are checked instead.
+     * Package private and deliberately not permission checked, because {@link KerberosSSOFilter}
+     * consults it for every request, including unauthenticated ones, so a check here would reject the
+     * very traffic it governs. Narrowing the visibility keeps it out of reach of everything but the
+     * filter and the configurator, enforced by the compiler rather than by a runtime check. The user
+     * facing accessors {@link #getBypassPathsString} and {@link #setBypassPaths} are checked.
      *
      * @return Immutable list of normalized paths, never null.
      */
-    public @NonNull List<String> getBypassPaths() {
+    /*package*/ @NonNull List<String> getBypassPaths() {
         // Null when read from config saved before this option existed
         return bypassPaths == null ? Collections.emptyList() : Collections.unmodifiableList(bypassPaths);
     }
