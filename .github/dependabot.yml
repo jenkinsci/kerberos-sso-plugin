@@ -6,6 +6,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # The BOM and the parent POM move together and frequently require the same
+      # jenkins.version bump, so review and fix the baseline once rather than twice.
+      jenkins-platform:
+        patterns:
+          - "io.jenkins.tools.bom:*"
+          - "org.jenkins-ci.plugins:plugin"
   - package-ecosystem: github-actions
     directory: /
     schedule:
