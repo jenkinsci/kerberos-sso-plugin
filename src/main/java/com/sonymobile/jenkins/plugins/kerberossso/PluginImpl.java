@@ -28,6 +28,7 @@ import com.sonymobile.jenkins.plugins.kerberossso.ioc.SpnegoKerberosAuthenticati
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.Util;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
@@ -51,7 +52,11 @@ import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,6 +85,7 @@ public class PluginImpl extends GlobalConfiguration {
     /*package*/ static final boolean DEFAULT_ALLOW_DELEGATION = false;
     /*package*/ static final boolean DEFAULT_ALLOW_UNSECURE_BASIC = true;
     /*package*/ static final boolean DEFAULT_PROMPT_NTLM = false;
+    /*package*/ static final List<String> DEFAULT_BYPASS_PATHS = Collections.emptyList();
 
     private boolean enabled = false;
 
@@ -94,6 +100,7 @@ public class PluginImpl extends GlobalConfiguration {
     private String loginClientModule = DEFAULT_SPNEGO_CLIENT;
 
     private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
+    private List<String> bypassPaths = new ArrayList<>(DEFAULT_BYPASS_PATHS);
     private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
     private boolean allowBasic = DEFAULT_ALLOW_BASIC;
     private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
@@ -276,6 +283,12 @@ public class PluginImpl extends GlobalConfiguration {
             this.loginServerModule = (String)data.get("loginServerModule");
             this.loginClientModule = (String)data.get("loginClientModule");
             this.anonymousAccess = (Boolean)data.get("anonymousAccess");
+
+            // Optional so configs saved before this option existed still submit cleanly
+            this.bypassPaths = data.has("bypassPaths")
+                    ? normalizeBypassPaths(splitBypassPaths((String)data.get("bypassPaths")))
+                    : new ArrayList<>();
+
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
             this.allowBasic = (Boolean)data.get("allowBasic");
             this.allowDelegation = (Boolean)data.get("allowDelegation");
@@ -512,6 +525,90 @@ public class PluginImpl extends GlobalConfiguration {
      */
     public void setAnonymousAccess(boolean anonymousAccess) {
         this.anonymousAccess = anonymousAccess;
+    }
+
+    /**
+     * Request paths that are served without Kerberos negotiation.
+     *
+     * Package private and deliberately not permission checked, because {@link KerberosSSOFilter}
+     * consults it for every request, including unauthenticated ones, so a check here would reject the
+     * very traffic it governs. Narrowing the visibility keeps it out of reach of everything but the
+     * filter and the configurator, enforced by the compiler rather than by a runtime check. The user
+     * facing accessors {@link #getBypassPathsString} and {@link #setBypassPaths} are checked.
+     *
+     * @return Immutable list of normalized paths, never null.
+     */
+    /*package*/ @NonNull List<String> getBypassPaths() {
+        // Null when read from config saved before this option existed
+        return bypassPaths == null ? Collections.emptyList() : Collections.unmodifiableList(bypassPaths);
+    }
+
+    /**
+     * Set the paths served without Kerberos negotiation.
+     *
+     * @param bypassPaths Paths to exempt. Blank entries are dropped, a leading slash is added when
+     *                    missing and a trailing one removed, so "login" and "/login/" both mean "/login".
+     */
+    public void setBypassPaths(@CheckForNull List<String> bypassPaths) {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        this.bypassPaths = normalizeBypassPaths(bypassPaths);
+    }
+
+    /**
+     * Used by groovy for data-binding of the multi-line text area.
+     *
+     * @return Configured paths, one per line.
+     */
+    public @NonNull String getBypassPathsString() {
+        Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
+        return String.join("\n", getBypassPaths());
+    }
+
+    /**
+     * Splits the raw text area content into individual paths.
+     *
+     * @param text Newline or comma separated paths, possibly null.
+     * @return One entry per path, blanks included as they are dropped by {@link #normalizeBypassPaths}.
+     */
+    private static @NonNull List<String> splitBypassPaths(@CheckForNull String text) {
+        if (text == null) {
+            return new ArrayList<>();
+        }
+        // Accept newline or comma separated input, normalizeBypassPaths drops the blanks
+        return new ArrayList<>(Arrays.asList(text.split("[\\r\\n,]+")));
+    }
+
+    /**
+     * Brings configured paths into the form the filter matches against.
+     *
+     * Drops blanks and duplicates, adds a missing leading slash and strips trailing ones, so "login",
+     * "/login" and "/login/" all yield "/login". The bare root is dropped as exempting it would disable
+     * the plugin entirely.
+     *
+     * @param paths Raw paths as configured, possibly null.
+     * @return Normalized paths, never null.
+     */
+    private static @NonNull List<String> normalizeBypassPaths(@CheckForNull List<String> paths) {
+        List<String> normalized = new ArrayList<>();
+        if (paths == null) {
+            return normalized;
+        }
+        for (String path : paths) {
+            String trimmed = Util.fixEmptyAndTrim(path);
+            if (trimmed == null) {
+                continue;
+            }
+            if (!trimmed.startsWith("/")) {
+                trimmed = "/" + trimmed;
+            }
+            while (trimmed.length() > 1 && trimmed.endsWith("/")) {
+                trimmed = trimmed.substring(0, trimmed.length() - 1);
+            }
+            if (!"/".equals(trimmed) && !normalized.contains(trimmed)) {
+                normalized.add(trimmed);
+            }
+        }
+        return normalized;
     }
 
     /**

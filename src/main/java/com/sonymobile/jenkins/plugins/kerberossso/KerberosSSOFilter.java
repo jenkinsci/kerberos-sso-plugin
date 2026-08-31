@@ -57,7 +57,9 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -302,25 +304,72 @@ public class KerberosSSOFilter implements Filter {
     }
 
     /**
+     * Paths Jenkins core serves without authentication, whatever the security realm.
+     *
+     * Mirrors the private {@code Jenkins#ALWAYS_READABLE_PATHS}. Delegating to the public
+     * {@code Jenkins#isSubjectToMandatoryReadPermissionCheck} instead is not viable here: its agent JNLP
+     * branch dereferences {@code Stapler.getCurrentRequest2()}, which is null this early in the chain.
+     *
+     * TODO drop this copy once core exposes the list, see https://issues.jenkins.io/browse/JENKINS-75881
+     */
+    private static final List<String> ALWAYS_READABLE_PATHS = Arrays.asList(
+            "/404", "/_404", "/_404_simple", "/login", "/loginError", "/logout", "/accessDenied",
+            "/adjuncts", "/error", "/oops", "/signup", "/tcpSlaveAgentListener", "/federatedLoginService",
+            "/securityRealm"
+    );
+
+    /**
      * Should the request authentication be skipped.
      * @param request Handled request.
      * @return true if request should not be authenticated.
      */
     private boolean skipAuthentication(HttpServletRequest request) {
-        if (PluginImpl.getInstance().getAnonymousAccess() && !isAccessingLoginGateway(request)) {
+        final PluginImpl plugin = PluginImpl.getInstance();
+        // Null when the request maps to the servlet path itself
+        final String rest = request.getPathInfo() == null ? "" : request.getPathInfo();
+
+        for (String bypassPath : plugin.getBypassPaths()) {
+            if (matches(rest, bypassPath)) {
+                logger.log(Level.FINEST, "Authentication not required: Configured bypass path: {0}", rest);
+                return true;
+            }
+        }
+
+        if (plugin.getAnonymousAccess() && !isAccessingLoginGateway(request)) {
             return true;
         }
 
+        // Core serves these anonymously and clients rely on it. Remoting, for one, refuses to connect
+        // unless GET /login answers 200. The exception is /login while it doubles as the SSO gateway.
+        if (!(plugin.getAnonymousAccess() && isAccessingLoginGateway(request))) {
+            for (String readable : ALWAYS_READABLE_PATHS) {
+                if (matches(rest, readable)) {
+                    logger.log(Level.FINEST, "Authentication not required: Always readable path: {0}", rest);
+                    return true;
+                }
+            }
+        }
+
         Jenkins jenkins = Jenkins.get();
-        String rest = request.getPathInfo();
         for (String name : jenkins.getUnprotectedRootActions()) {
-            if (rest.startsWith("/" + name + "/") || rest.equals("/" + name)) {
-                logger.log(Level.FINEST, "Authentication not required: Unprotected root action: " + rest);
+            if (matches(rest, "/" + name)) {
+                logger.log(Level.FINEST, "Authentication not required: Unprotected root action: {0}", rest);
                 return true;
             }
         }
 
         return request.getHeader(BYPASS_HEADER) != null;
+    }
+
+    /**
+     * Match a path against a prefix on whole segments, the way Jenkins core matches unprotected paths.
+     *
+     * @param path Request path info.
+     * @param prefix Path prefix, starting with a slash and not ending with one.
+     * @return true if path is the prefix itself or anything below it.
+     */
+    private static boolean matches(String path, String prefix) {
+        return path.equals(prefix) || path.startsWith(prefix + "/");
     }
 
     /**

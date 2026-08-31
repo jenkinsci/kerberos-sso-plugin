@@ -71,6 +71,10 @@ form.section(title:"Kerberos Single Sign-On") {
                 form.checkbox(field: "anonymousAccess", checked:p.anonymousAccess)
             }
 
+            form.entry(field: "bypassPaths", title:_("Bypass paths")) {
+                form.textarea(value:p.bypassPathsString)
+            }
+
             form.entry(title:_("Allow Localhost")) {
                 form.checkbox(field: "allowLocalhost", checked:p.allowLocalhost)
             }
