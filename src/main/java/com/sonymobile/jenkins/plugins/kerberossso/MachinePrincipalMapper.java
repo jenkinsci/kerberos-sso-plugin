@@ -29,13 +29,16 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Maps Kerberos machine principals to Jenkins identities.
@@ -43,7 +46,17 @@ import java.util.regex.Pattern;
  * A machine is recognised by the shape of its principal: {@code host/fqdn@REALM} as issued from a
  * Unix keytab, or {@code NAME$@REALM} for a Windows computer account. Machines never go through the
  * security realm's user lookup. They are admitted only when they match a configured pattern, and
- * they authenticate as themselves carrying the single group {@link #GROUP}.
+ * they authenticate as themselves carrying {@link #GROUP} plus any groups their patterns name.
+ *
+ * A pattern is a glob, optionally followed by the groups to grant:
+ * <pre>
+ * host/*-laptop-*.example.com@EXAMPLE.COM -&gt; laptop-callbacks
+ * host/deploy*.example.com@EXAMPLE.COM    -&gt; deploy-triggers, production
+ * !decommissioned$@EXAMPLE.COM
+ * </pre>
+ * Groups let an authorization strategy grant one class of machine access to one job without
+ * granting every machine the same. A machine matching several patterns receives the union of their
+ * groups.
  *
  * The token deliberately lacks {@code SecurityRealm.AUTHENTICATED_AUTHORITY2}. Grants to the
  * "authenticated" group are matched by that authority, so leaving it off is what stops machines from
@@ -51,10 +64,11 @@ import java.util.regex.Pattern;
  */
 final class MachinePrincipalMapper {
 
-    /** Group every admitted machine belongs to, the sid operators grant permissions to. */
+    /** Group every admitted machine belongs to, whatever else its patterns name. */
     static final String GROUP = "kerberos-machines";
 
     private static final String DENY = "!";
+    private static final String GROUPS = "->";
 
     private MachinePrincipalMapper() {
     }
@@ -70,10 +84,10 @@ final class MachinePrincipalMapper {
     }
 
     /**
-     * Decide whether a machine may authenticate and as whom.
+     * Decide whether a machine may authenticate, as whom, and in which groups.
      *
-     * A deny entry ({@code !pattern}) wins over any allow entry, so one machine can be revoked from a
-     * glob that admits its peers.
+     * A deny entry wins over every allow entry regardless of order, so one machine can be revoked
+     * from a glob that admits its peers.
      *
      * @param principalName Machine principal, realm included.
      * @param patterns Normalized patterns, see {@link #normalize}.
@@ -81,30 +95,43 @@ final class MachinePrincipalMapper {
      */
     static @CheckForNull Authentication map(@NonNull String principalName, @NonNull List<String> patterns) {
         String subject = principalName.toLowerCase(Locale.ROOT);
+        Set<String> groups = new LinkedHashSet<>();
+        groups.add(GROUP);
         boolean allowed = false;
+
         for (String pattern : patterns) {
             boolean deny = pattern.startsWith(DENY);
-            if (globMatches(deny ? pattern.substring(DENY.length()) : pattern, subject)) {
-                if (deny) {
-                    return null;
-                }
-                allowed = true;
+            String body = deny ? pattern.substring(DENY.length()) : pattern;
+            if (!globMatches(glob(body), subject)) {
+                continue;
             }
+            if (deny) {
+                return null;
+            }
+            allowed = true;
+            groups.addAll(groups(body));
         }
+
         if (!allowed) {
             return null;
         }
-        return new UsernamePasswordAuthenticationToken(
-                subject, "", Collections.singletonList(new SimpleGrantedAuthority(GROUP)));
+
+        List<GrantedAuthority> authorities = groups.stream()
+                .map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+        return new UsernamePasswordAuthenticationToken(subject, "", authorities);
     }
 
     /**
      * Bring configured patterns into the form {@link #map} expects.
      *
+     * The glob is lowercased to match the lowercased principal. Group names keep their case, because
+     * authorization strategies match them literally.
+     *
      * @param patterns Raw patterns, possibly null.
-     * @return Trimmed, lowercased, deduplicated patterns with blanks dropped.
-     * @throws IllegalArgumentException for a pattern without a realm. Matching is realm inclusive by
-     *         design, so a realm-less pattern would admit any realm's machines; refuse it outright.
+     * @return Canonical patterns, blanks and duplicates dropped.
+     * @throws IllegalArgumentException for a glob without a realm, a deny entry naming groups, or an
+     *         entry whose groups are empty. Matching is realm inclusive by design, so a realm-less
+     *         glob would admit any realm's machines; refuse it outright.
      */
     static @NonNull List<String> normalize(@CheckForNull List<String> patterns) {
         List<String> normalized = new ArrayList<>();
@@ -112,20 +139,58 @@ final class MachinePrincipalMapper {
             return normalized;
         }
         for (String raw : patterns) {
-            String pattern = Util.fixEmptyAndTrim(raw);
-            if (pattern == null) {
+            String entry = Util.fixEmptyAndTrim(raw);
+            if (entry == null) {
                 continue;
             }
-            pattern = pattern.toLowerCase(Locale.ROOT);
-            String glob = pattern.startsWith(DENY) ? pattern.substring(DENY.length()) : pattern;
+            boolean deny = entry.startsWith(DENY);
+            String body = deny ? entry.substring(DENY.length()) : entry;
+
+            String glob = glob(body).toLowerCase(Locale.ROOT);
+            if (glob.isEmpty()) {
+                throw new IllegalArgumentException("Machine principal pattern is missing: " + raw);
+            }
             if (!glob.contains("@")) {
                 throw new IllegalArgumentException("Machine principal pattern must name a realm: " + raw);
             }
-            if (!normalized.contains(pattern)) {
-                normalized.add(pattern);
+
+            List<String> groups = groups(body);
+            if (deny && body.contains(GROUPS)) {
+                throw new IllegalArgumentException("A deny pattern grants nothing, drop its groups: " + raw);
+            }
+            if (!deny && body.contains(GROUPS) && groups.isEmpty()) {
+                throw new IllegalArgumentException("Machine principal pattern names no group after ->: " + raw);
+            }
+
+            String canonical = (deny ? DENY : "") + glob
+                    + (groups.isEmpty() ? "" : " " + GROUPS + " " + String.join(", ", groups));
+            if (!normalized.contains(canonical)) {
+                normalized.add(canonical);
             }
         }
         return normalized;
+    }
+
+    /** The glob part of a pattern body, before any {@code ->}. */
+    private static @NonNull String glob(@NonNull String body) {
+        int arrow = body.indexOf(GROUPS);
+        return (arrow < 0 ? body : body.substring(0, arrow)).trim();
+    }
+
+    /** The groups named after {@code ->}, in order, blanks dropped. Case preserved. */
+    private static @NonNull List<String> groups(@NonNull String body) {
+        int arrow = body.indexOf(GROUPS);
+        if (arrow < 0) {
+            return new ArrayList<>();
+        }
+        List<String> groups = new ArrayList<>();
+        for (String group : body.substring(arrow + GROUPS.length()).split(",")) {
+            String name = Util.fixEmptyAndTrim(group);
+            if (name != null && !groups.contains(name)) {
+                groups.add(name);
+            }
+        }
+        return groups;
     }
 
     /**

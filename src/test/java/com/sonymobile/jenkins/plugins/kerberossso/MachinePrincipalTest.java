@@ -25,14 +25,19 @@
 package com.sonymobile.jenkins.plugins.kerberossso;
 
 import com.sonymobile.jenkins.plugins.kerberossso.ioc.KerberosAuthenticator;
+import hudson.model.Cause;
+import hudson.model.FreeStyleProject;
+import hudson.model.Item;
 import hudson.model.RootAction;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.util.PluginServletFilter;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -160,6 +165,66 @@ public class MachinePrincipalTest {
         }
     }
 
+
+    /**
+     * The use case this exists for: a class of machines granted Job/Build on one job and nothing
+     * else. Also answers two questions the design left open, namely whether a session-less identity
+     * can satisfy CSRF, and whether the build records which machine triggered it.
+     */
+    @Test
+    public void laptopGroupCanTriggerOnlyTheJobItIsGranted() throws Exception {
+        FreeStyleProject callback = rule.createFreeStyleProject("callback");
+        FreeStyleProject offLimits = rule.createFreeStyleProject("off-limits");
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ).everywhere().to("laptop-callbacks")
+                .grant(Item.READ, Item.BUILD).onItems(callback).to("laptop-callbacks"));
+
+        fakePrincipal("host/marcos-laptop-1.remote.example.com@EXAMPLE.COM");
+        patterns("host/*-laptop-*.remote.example.com@EXAMPLE.COM -> laptop-callbacks");
+
+        assertEquals(201, post("job/callback/build"));
+        rule.waitUntilNoActivity();
+        assertEquals("the granted job ran", 1, callback.getBuilds().size());
+
+        String startedBy = callback.getLastBuild().getCauses().stream()
+                .map(Cause::getShortDescription).collect(Collectors.joining("; "));
+        System.out.println("BUILD CAUSE >>> " + startedBy);
+
+        // 404 rather than 403: without Item.READ Jenkins hides the job instead of admitting it exists
+        assertEquals("the ungranted job did not", 404, post("job/off-limits/build"));
+        assertEquals(0, offLimits.getBuilds().size());
+    }
+
+    @Test
+    public void machineGetsEveryGroupItsMatchingPatternsName() throws Exception {
+        fakePrincipal("host/ci01.example.com@EXAMPLE.COM");
+        patterns("host/*@EXAMPLE.COM -> all-machines",
+                 "host/ci*@EXAMPLE.COM -> ci-servers, Production");
+
+        List<String> held = identity().authorities;
+        assertTrue(held.contains(MachinePrincipalMapper.GROUP));
+        assertTrue(held.contains("all-machines"));
+        assertTrue(held.contains("ci-servers"));
+        assertTrue("group names keep their case", held.contains("Production"));
+        assertFalse(held.contains("authenticated"));
+    }
+
+    @Test
+    public void groupsAreNotGrantedToMachinesOutsideThePattern() throws Exception {
+        fakePrincipal("host/db01.example.com@EXAMPLE.COM");
+        patterns("host/*@EXAMPLE.COM", "host/ci*@EXAMPLE.COM -> ci-servers");
+
+        List<String> held = identity().authorities;
+        assertTrue(held.contains(MachinePrincipalMapper.GROUP));
+        assertFalse("db01 is not a ci server", held.contains("ci-servers"));
+    }
+
+    @Test
+    public void denyPatternsMayNotGrantGroups() {
+        assertThrows(IllegalArgumentException.class, () -> PluginImpl.getInstance()
+                .setMachinePrincipalPatterns(Collections.singletonList("!a$@X -> some-group")));
+    }
+
     @Test
     public void denyEntryRevokesASingleMachine() throws Exception {
         fakePrincipal("STOLEN$@EXAMPLE.COM");
@@ -233,6 +298,24 @@ public class MachinePrincipalTest {
             try (CloseableHttpResponse response = client.execute(get)) {
                 assertEquals(200, response.getStatusLine().getStatusCode());
                 return new Identity(EntityUtils.toString(response.getEntity()));
+            }
+        }
+    }
+
+    /** @return status of a POST, fetching a CSRF crumb first when the controller issues one. */
+    private int post(String path) throws IOException {
+        try (CloseableHttpClient client = HttpClients.createMinimal()) {
+            String base = rule.getURL().toExternalForm();
+            HttpPost req = new HttpPost(base + path);
+            try (CloseableHttpResponse crumb = client.execute(new HttpGet(base + "crumbIssuer/api/json"))) {
+                if (crumb.getStatusLine().getStatusCode() == 200) {
+                    JSONObject json = JSONObject.fromObject(EntityUtils.toString(crumb.getEntity()));
+                    req.addHeader(json.getString("crumbRequestField"), json.getString("crumb"));
+                }
+            }
+            try (CloseableHttpResponse response = client.execute(req)) {
+                EntityUtils.consumeQuietly(response.getEntity());
+                return response.getStatusLine().getStatusCode();
             }
         }
     }
