@@ -33,6 +33,7 @@ import hudson.util.PluginServletFilter;
 import jenkins.model.Jenkins;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -118,11 +119,45 @@ public class MachinePrincipalTest {
         assertEquals("anonymous", identity().name);
     }
 
+    /**
+     * The dummy realm resolves any name, so before this change a machine principal became a full
+     * user carrying "authenticated", as it would with any realm that resolves computer accounts.
+     * Machine principals must never reach the realm, configured or not.
+     */
     @Test
-    public void machinesAreAnonymousWhenNothingIsConfigured() throws Exception {
+    public void machinesNeverReachTheSecurityRealmEvenWhenNothingIsConfigured() throws Exception {
         fakePrincipal("host/agent01.example.com@EXAMPLE.COM");
 
-        assertEquals("anonymous", identity().name);
+        Identity who = identity();
+        assertEquals("anonymous", who.name);
+        assertFalse(who.authorities.contains("authenticated"));
+    }
+
+    /**
+     * Machine authentication is stateless: every request must carry a ticket. No user record exists
+     * for a machine, so core's user seed check drops the authentication from the session, which suits
+     * keytab automation (nothing to hijack, nothing to expire) and matches curl --negotiate without a
+     * cookie jar. Consequence pinned here: /whoAmI, an unprotected root action the filter skips, will
+     * never report a machine identity; verify with a protected URL instead.
+     */
+    @Test
+    public void machineAuthenticationIsStatelessPerRequest() throws Exception {
+        fakePrincipal("host/agent01.example.com@EXAMPLE.COM");
+        patterns("host/*@EXAMPLE.COM");
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultCookieStore(new BasicCookieStore()).build()) {
+            String base = rule.getURL().toExternalForm();
+            try (CloseableHttpResponse first = client.execute(new HttpGet(base + "identity/"))) {
+                assertTrue(EntityUtils.toString(first.getEntity()).startsWith("host/agent01.example.com@example.com|"));
+            }
+            try (CloseableHttpResponse second = client.execute(new HttpGet(base + "whoAmI/api/json"))) {
+                assertTrue(EntityUtils.toString(second.getEntity()).contains("\"name\":\"anonymous\""));
+            }
+            try (CloseableHttpResponse third = client.execute(new HttpGet(base + "identity/"))) {
+                assertTrue("each protected request re-authenticates",
+                        EntityUtils.toString(third.getEntity()).startsWith("host/agent01.example.com@example.com|"));
+            }
+        }
     }
 
     @Test
