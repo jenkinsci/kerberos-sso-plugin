@@ -13,11 +13,19 @@
   </p>
 
   <p>
+    A pattern may name the groups it grants, after <code>-&gt;</code>, so classes of machine can be
+    scoped apart: <code>host/*-laptop-*.example.com@EXAMPLE.COM -&gt; laptop-callbacks</code>. Grant a
+    job to that group and only those machines may trigger it. A machine matching several patterns
+    receives the union of their groups. Group names keep their case; a deny pattern grants nothing, so
+    naming groups on one is rejected.
+  </p>
+
+  <p>
     An admitted machine authenticates as its lowercased principal, for example
-    <code>host/agent01.example.com@example.com</code>, and belongs to exactly one group,
-    <code>kerberos-machines</code>. It does <b>not</b> belong to <code>authenticated</code> and has no
-    permissions until you grant some, to that group or to the machine's name, in your authorization
-    strategy. No Jenkins user record is created for it.
+    <code>host/agent01.example.com@example.com</code>, and always belongs to
+    <code>kerberos-machines</code> as well as any groups its patterns name. It does <b>not</b> belong
+    to <code>authenticated</code> and has no permissions until you grant some. No Jenkins user record
+    is persisted for it.
   </p>
 
   <p>

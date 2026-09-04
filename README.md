@@ -44,7 +44,8 @@ security:
     loginClientModule: 'spnego-client'
     anonymousAccess: true
     machinePrincipalPatterns:
-      - 'host/*.example.com@EXAMPLE.COM'
+      - 'host/*-laptop-*.remote.example.com@EXAMPLE.COM -> laptop-callbacks'
+      - 'host/ci*.example.com@EXAMPLE.COM               -> ci-servers, production'
       - '*$@EXAMPLE.COM'
       - '!decommissioned$@EXAMPLE.COM'
     allowLocalhost: false
@@ -75,9 +76,15 @@ pattern written for another. A pattern beginning with `!` denies, and denial alw
 how a single machine is revoked from a glob that admits its peers.
 
 An admitted machine authenticates as its lowercased principal, for example
-`host/agent01.example.com@example.com`, and belongs to exactly one group, `kerberos-machines`. Grant
-that group, or an individual machine name, whatever the automation needs in your authorization
-strategy. Until you do, an admitted machine can do nothing.
+`host/agent01.example.com@example.com`. Until you grant it something it can do nothing.
+
+A pattern may name the groups it grants, after `->`. This is how classes of machine are scoped
+apart: grant `Job/Build` on one job to `laptop-callbacks` and laptops may trigger that job while CI
+servers cannot, without either group needing a directory entry. A machine matching several patterns
+receives the union of their groups, and every admitted machine also belongs to `kerberos-machines`,
+so a blanket grant still reaches all of them. Group names keep their case, because authorization
+strategies match them literally; the glob is lowercased to match the lowercased principal. A deny
+pattern grants nothing, so naming groups on one is rejected.
 
 Leave the option empty, the default, and machine principals authenticate as nobody.
 
