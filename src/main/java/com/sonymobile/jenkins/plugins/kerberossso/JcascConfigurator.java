@@ -82,6 +82,8 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
             i.setLoginClientModule(read(m, "loginClientModule", PluginImpl.DEFAULT_SPNEGO_CLIENT));
             i.setAnonymousAccess(read(m, "anonymousAccess", PluginImpl.DEFAULT_ANONYMOUS_ACCESS));
             i.setBypassPaths(readList(m, "bypassPaths", PluginImpl.DEFAULT_BYPASS_PATHS));
+            i.setMachinePrincipalPatterns(
+                    readList(m, "machinePrincipalPatterns", PluginImpl.DEFAULT_MACHINE_PRINCIPAL_PATTERNS));
             i.setAllowLocalhost(read(m, "allowLocalhost", PluginImpl.DEFAULT_ALLOW_LOCALHOST));
             i.setAllowBasic(read(m, "allowBasic", PluginImpl.DEFAULT_ALLOW_BASIC));
             i.setAllowDelegation(read(m, "allowDelegation", PluginImpl.DEFAULT_ALLOW_DELEGATION));
@@ -154,6 +156,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
                 new Attribute<PluginImpl, String>("loginClientModule", String.class).getter(PluginImpl::getLoginClientModule).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("anonymousAccess", Boolean.class).getter(PluginImpl::getAnonymousAccess).setter(noop()),
                 new Attribute<PluginImpl, Object>("bypassPaths", String.class).multiple(true).getter(PluginImpl::getBypassPaths).setter(noop()),
+                new Attribute<PluginImpl, Object>("machinePrincipalPatterns", String.class).multiple(true).getter(PluginImpl::getMachinePrincipalPatterns).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowLocalhost", Boolean.class).getter(PluginImpl::isAllowLocalhost).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowBasic", Boolean.class).getter(PluginImpl::isAllowBasic).setter(noop()),
                 new Attribute<PluginImpl, Boolean>("allowDelegation", Boolean.class).getter(PluginImpl::isAllowDelegation).setter(noop()),

@@ -203,29 +203,41 @@ public class KerberosSSOFilter implements Filter {
 
             String principalName = principal.getName();
 
-            if (principalName.contains("@")) {
-                principalName = principalName.substring(0, principalName.indexOf("@"));
-            }
+            if (MachinePrincipalMapper.isMachinePrincipal(principalName)) {
+                // Machines never take the realm's user lookup, see MachinePrincipalMapper
+                Authentication machine = MachinePrincipalMapper.map(
+                        principalName, plugin.getMachinePrincipalPatterns());
+                if (machine == null) {
+                    logger.log(Level.WARNING, "Machine principal {0} is not allowlisted", principalName);
+                } else {
+                    ACL.impersonate2(machine);
+                    logger.log(Level.INFO, "Authenticated machine {0}", machine.getName());
+                }
+            } else {
+                if (principalName.contains("@")) {
+                    principalName = principalName.substring(0, principalName.indexOf("@"));
+                }
 
-            final Jenkins jenkins = Jenkins.get();
-            try {
-                SecurityRealm realm = jenkins.getSecurityRealm();
-                UserDetails userDetails = realm.loadUserByUsername2(principalName);
-                String username = userDetails.getUsername();
-                Authentication authToken = new UsernamePasswordAuthenticationToken(
-                        username,
-                        userDetails.getPassword(),
-                        userDetails.getAuthorities());
+                final Jenkins jenkins = Jenkins.get();
+                try {
+                    SecurityRealm realm = jenkins.getSecurityRealm();
+                    UserDetails userDetails = realm.loadUserByUsername2(principalName);
+                    String username = userDetails.getUsername();
+                    Authentication authToken = new UsernamePasswordAuthenticationToken(
+                            username,
+                            userDetails.getPassword(),
+                            userDetails.getAuthorities());
 
-                ACL.impersonate2(authToken);
+                    ACL.impersonate2(authToken);
 
-                populateUserSeed(httpRequest, username);
-                SecurityListener.fireLoggedIn(username);
-                logger.log(Level.INFO, "Authenticated user {0}", username);
-            } catch (UsernameNotFoundException e) {
-                logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "User authentication failed", e);
+                    populateUserSeed(httpRequest, username);
+                    SecurityListener.fireLoggedIn(username);
+                    logger.log(Level.INFO, "Authenticated user {0}", username);
+                } catch (UsernameNotFoundException e) {
+                    logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "User authentication failed", e);
+                }
             }
         }
 

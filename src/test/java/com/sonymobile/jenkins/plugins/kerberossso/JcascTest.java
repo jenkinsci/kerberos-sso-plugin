@@ -95,6 +95,7 @@ public class JcascTest {
         assertEquals("spnego-client", i.getLoginClientModule());
         assertTrue(i.getAnonymousAccess());
         assertEquals(Collections.singletonList("/login"), i.getBypassPaths());
+        assertEquals(Collections.singletonList("host/*@example.com"), i.getMachinePrincipalPatterns());
         assertFalse(i.isAllowLocalhost());
         assertFalse(i.isAllowBasic());
         assertTrue(i.isAllowDelegation());
@@ -144,6 +145,7 @@ public class JcascTest {
         assertEquals("spnego-client", i.getLoginClientModule());
         assertFalse(i.getAnonymousAccess());
         assertEquals(Collections.emptyList(), i.getBypassPaths());
+        assertEquals(Collections.emptyList(), i.getMachinePrincipalPatterns());
         assertTrue(i.isAllowLocalhost());
         assertTrue(i.isAllowBasic());
         assertFalse(i.isAllowDelegation());
