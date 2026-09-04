@@ -43,12 +43,75 @@ security:
     loginServerModule: 'spnego-server'
     loginClientModule: 'spnego-client'
     anonymousAccess: true
+    machinePrincipalPatterns:
+      - 'host/*-laptop-*.remote.example.com@EXAMPLE.COM -> laptop-callbacks'
+      - 'host/ci*.example.com@EXAMPLE.COM               -> ci-servers, production'
+      - '*$@EXAMPLE.COM'
+      - '!decommissioned$@EXAMPLE.COM'
     allowLocalhost: false
     allowBasic: true
     allowDelegation: false
     allowUnsecureBasic: false
     promptNtlm: false
 ```
+
+## Machine principals
+
+Domain-joined hosts already hold Kerberos credentials of their own: `host/fqdn@REALM` from a Unix
+keytab, and `NAME$@REALM` for a Windows computer account. `machinePrincipalPatterns` lets those
+hosts call the Jenkins API as themselves, instead of being issued long-lived API tokens.
+
+```yaml
+security:
+  kerberosSso:
+    machinePrincipalPatterns:
+      - 'host/*.example.com@EXAMPLE.COM'
+      - '*$@EXAMPLE.COM'
+      - '!decommissioned$@EXAMPLE.COM'
+```
+
+Patterns match case-insensitively against the whole principal, realm included, with `*` as the only
+wildcard. Every pattern must name a realm, so that one realm's machines cannot be admitted by a
+pattern written for another. A pattern beginning with `!` denies, and denial always wins, which is
+how a single machine is revoked from a glob that admits its peers.
+
+An admitted machine authenticates as its lowercased principal, for example
+`host/agent01.example.com@example.com`. Until you grant it something it can do nothing.
+
+A pattern may name the groups it grants, after `->`. This is how classes of machine are scoped
+apart: grant `Job/Build` on one job to `laptop-callbacks` and laptops may trigger that job while CI
+servers cannot, without either group needing a directory entry. A machine matching several patterns
+receives the union of their groups, and every admitted machine also belongs to `kerberos-machines`,
+so a blanket grant still reaches all of them. Group names keep their case, because authorization
+strategies match them literally; the glob is lowercased to match the lowercased principal. A deny
+pattern grants nothing, so naming groups on one is rejected.
+
+Leave the option empty, the default, and machine principals authenticate as nobody.
+
+### Properties worth knowing
+
+- **Machines never reach the security realm.** Directories contain computer objects, and a realm that
+  resolved `AGENT01$` would otherwise turn every domain workstation into a Jenkins user.
+- **Machines are not members of `authenticated`.** Permissions granted to that group do not reach
+  them, only grants to `kerberos-machines` or to the machine's own name.
+- **No Jenkins user record is created.** Machines do not appear under People, and authorization
+  strategies will not offer them for autocompletion, so the name must be typed exactly.
+- **Authentication is per request.** No session is established, so every call must carry a ticket.
+  `/whoAmI` is served without negotiation and will report `anonymous` for a machine; check a
+  protected URL instead.
+- **These identities are low trust.** Any local administrator on a domain-joined host holds that
+  host's ticket. Grant the minimum the automation needs.
+
+### Using it
+
+```
+kinit -k -t /etc/krb5.keytab "host/$(hostname -f)"
+curl --negotiate -u : -s -o /dev/null -w '%{http_code}\n' https://jenkins.example.com/api/json
+```
+
+A `200` and a `Authenticated machine host/...` line in the Jenkins log confirm it. This requires
+every URL to negotiate, so `anonymousAccess` must be disabled; with it enabled only `/login`
+negotiates and callers must authenticate there first and reuse the session cookie.
 
 ## User guide
 

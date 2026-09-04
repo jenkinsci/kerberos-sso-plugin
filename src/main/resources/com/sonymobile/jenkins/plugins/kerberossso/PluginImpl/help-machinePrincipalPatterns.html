@@ -1,0 +1,35 @@
+<div>
+  Kerberos <b>machine</b> principals that may authenticate to Jenkins, one pattern per line. Machines are
+  principals of the form <code>host/fqdn@REALM</code> (a Unix host keytab) or <code>NAME$@REALM</code>
+  (a Windows computer account). Leave empty to keep the default, where machine principals are treated
+  as unknown users and proceed anonymously.
+
+  <p>
+    Patterns are matched case-insensitively against the whole principal, realm included, with
+    <code>*</code> as the only wildcard: <code>host/*.example.com@EXAMPLE.COM</code>,
+    <code>*$@EXAMPLE.COM</code>. Every pattern must name a realm. Prefix a pattern with <code>!</code>
+    to deny it; a deny entry always wins, so <code>!stolen-laptop$@EXAMPLE.COM</code> revokes one
+    machine admitted by a broader glob.
+  </p>
+
+  <p>
+    A pattern may name the groups it grants, after <code>-&gt;</code>, so classes of machine can be
+    scoped apart: <code>host/*-laptop-*.example.com@EXAMPLE.COM -&gt; laptop-callbacks</code>. Grant a
+    job to that group and only those machines may trigger it. A machine matching several patterns
+    receives the union of their groups. Group names keep their case; a deny pattern grants nothing, so
+    naming groups on one is rejected.
+  </p>
+
+  <p>
+    An admitted machine authenticates as its lowercased principal, for example
+    <code>host/agent01.example.com@example.com</code>, and always belongs to
+    <code>kerberos-machines</code> as well as any groups its patterns name. It does <b>not</b> belong
+    to <code>authenticated</code> and has no permissions until you grant some. No Jenkins user record
+    is persisted for it.
+  </p>
+
+  <p>
+    Treat these identities as low trust: any local administrator on a domain-joined host holds that
+    host's ticket. Grant the minimum the automation needs.
+  </p>
+</div>

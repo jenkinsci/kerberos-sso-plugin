@@ -86,6 +86,7 @@ public class PluginImpl extends GlobalConfiguration {
     /*package*/ static final boolean DEFAULT_ALLOW_UNSECURE_BASIC = true;
     /*package*/ static final boolean DEFAULT_PROMPT_NTLM = false;
     /*package*/ static final List<String> DEFAULT_BYPASS_PATHS = Collections.emptyList();
+    /*package*/ static final List<String> DEFAULT_MACHINE_PRINCIPAL_PATTERNS = Collections.emptyList();
 
     private boolean enabled = false;
 
@@ -101,6 +102,7 @@ public class PluginImpl extends GlobalConfiguration {
 
     private boolean anonymousAccess = DEFAULT_ANONYMOUS_ACCESS;
     private List<String> bypassPaths = new ArrayList<>(DEFAULT_BYPASS_PATHS);
+    private List<String> machinePrincipalPatterns = new ArrayList<>(DEFAULT_MACHINE_PRINCIPAL_PATTERNS);
     private boolean allowLocalhost = DEFAULT_ALLOW_LOCALHOST;
     private boolean allowBasic = DEFAULT_ALLOW_BASIC;
     private boolean allowDelegation = DEFAULT_ALLOW_DELEGATION;
@@ -287,6 +289,9 @@ public class PluginImpl extends GlobalConfiguration {
             // Optional so configs saved before this option existed still submit cleanly
             this.bypassPaths = data.has("bypassPaths")
                     ? normalizeBypassPaths(splitBypassPaths((String)data.get("bypassPaths")))
+                    : new ArrayList<>();
+            this.machinePrincipalPatterns = data.has("machinePrincipalPatterns")
+                    ? parseMachinePrincipalPatterns((String)data.get("machinePrincipalPatterns"))
                     : new ArrayList<>();
 
             this.allowLocalhost = (Boolean)data.get("allowLocalhost");
@@ -562,6 +567,56 @@ public class PluginImpl extends GlobalConfiguration {
     public @NonNull String getBypassPathsString() {
         Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
         return String.join("\n", getBypassPaths());
+    }
+
+    /**
+     * Kerberos machine principal patterns admitted to authenticate, see {@link MachinePrincipalMapper}.
+     *
+     * Package private and not permission checked for the same reason as {@link #getBypassPaths}: the
+     * filter reads it while authenticating, when there is no user to check yet.
+     *
+     * @return Immutable list of normalized patterns, never null.
+     */
+    /*package*/ @NonNull List<String> getMachinePrincipalPatterns() {
+        return machinePrincipalPatterns == null
+                ? Collections.emptyList() : Collections.unmodifiableList(machinePrincipalPatterns);
+    }
+
+    /**
+     * Set the machine principal patterns admitted to authenticate.
+     *
+     * @param patterns Patterns to admit, see {@link MachinePrincipalMapper#normalize}.
+     * @throws IllegalArgumentException for a pattern that does not name a realm.
+     */
+    public void setMachinePrincipalPatterns(@CheckForNull List<String> patterns) {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        this.machinePrincipalPatterns = MachinePrincipalMapper.normalize(patterns);
+    }
+
+    /**
+     * Used by groovy for data-binding of the multi-line text area.
+     *
+     * @return Configured patterns, one per line.
+     */
+    public @NonNull String getMachinePrincipalPatternsString() {
+        Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
+        return String.join("\n", getMachinePrincipalPatterns());
+    }
+
+    /**
+     * Parses the text area content, reporting a bad pattern against its form field.
+     *
+     * @param text Newline or comma separated patterns, possibly null.
+     * @return Normalized patterns.
+     * @throws Descriptor.FormException for a pattern that does not name a realm.
+     */
+    private static @NonNull List<String> parseMachinePrincipalPatterns(@CheckForNull String text)
+            throws Descriptor.FormException {
+        try {
+            return MachinePrincipalMapper.normalize(splitBypassPaths(text));
+        } catch (IllegalArgumentException e) {
+            throw new Descriptor.FormException(e.getMessage(), "machinePrincipalPatterns");
+        }
     }
 
     /**

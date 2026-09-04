@@ -11,6 +11,8 @@ security:
     anonymousAccess: true
     bypassPaths:
       - '/login'
+    machinePrincipalPatterns:
+      - 'host/*@EXAMPLE.COM'
     allowLocalhost: false
     allowBasic: false
     allowDelegation: true
