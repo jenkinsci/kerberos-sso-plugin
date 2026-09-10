@@ -78,6 +78,15 @@ public class KerberosSSOFilter implements Filter {
      */
     public static final String BYPASS_HEADER = "Bypass-Kerberos";
 
+    /**
+     * Request attribute set once {@link KerberosPreCrumbAuthentication} has run this filter.
+     *
+     * That extension runs inside CrumbFilter, which core places before PluginServletFilter, so
+     * without this marker the filter would run a second time on the same request.
+     */
+    /*package*/ static final String NEGOTIATED_ATTRIBUTE =
+            KerberosSSOFilter.class.getName() + ".negotiated";
+
     private static final Logger logger = Logger.getLogger(KerberosSSOFilter.class.getName());
 
     /*package for testing*/ final transient @NonNull Map<String, String> config;
@@ -150,6 +159,12 @@ public class KerberosSSOFilter implements Filter {
         final HttpServletResponse httpResponse = (HttpServletResponse)response;
         final HttpServletRequest httpRequest = (HttpServletRequest)request;
 
+        if (httpRequest.getAttribute(NEGOTIATED_ATTRIBUTE) != null) {
+            // Already negotiated before crumb validation, see NEGOTIATED_ATTRIBUTE
+            chain.doFilter(request, response);
+            return;
+        }
+
         if (skipAuthentication(httpRequest)) {
             chain.doFilter(request, response);
             return;
@@ -203,29 +218,22 @@ public class KerberosSSOFilter implements Filter {
 
             String principalName = principal.getName();
 
-            if (principalName.contains("@")) {
-                principalName = principalName.substring(0, principalName.indexOf("@"));
+            Authentication machine = null;
+            boolean denied = false;
+            if (MachinePrincipalMapper.isMachinePrincipal(principalName)) {
+                List<String> patterns = plugin.getMachinePrincipalPatterns();
+                machine = MachinePrincipalMapper.map(principalName, patterns);
+                denied = machine == null && MachinePrincipalMapper.isDenied(principalName, patterns);
             }
 
-            final Jenkins jenkins = Jenkins.get();
-            try {
-                SecurityRealm realm = jenkins.getSecurityRealm();
-                UserDetails userDetails = realm.loadUserByUsername2(principalName);
-                String username = userDetails.getUsername();
-                Authentication authToken = new UsernamePasswordAuthenticationToken(
-                        username,
-                        userDetails.getPassword(),
-                        userDetails.getAuthorities());
-
-                ACL.impersonate2(authToken);
-
-                populateUserSeed(httpRequest, username);
-                SecurityListener.fireLoggedIn(username);
-                logger.log(Level.INFO, "Authenticated user {0}", username);
-            } catch (UsernameNotFoundException e) {
-                logger.log(Level.WARNING, "Username {0} not registered by Jenkins", principalName);
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "User authentication failed", e);
+            if (machine != null) {
+                ACL.impersonate2(machine);
+                logger.log(Level.INFO, "Authenticated machine {0}", machine.getName());
+            } else if (denied) {
+                logger.log(Level.WARNING, "Machine principal {0} is denied", principalName);
+            } else {
+                // No pattern matches, so the realm decides as it did before machine patterns existed
+                authenticateThroughRealm(principalName, httpRequest);
             }
         }
 
@@ -242,6 +250,37 @@ public class KerberosSSOFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Authenticate a principal against the configured security realm.
+     *
+     * @param principalName Principal as reported by the authenticator, realm included.
+     * @param httpRequest Current request.
+     */
+    private void authenticateThroughRealm(String principalName, HttpServletRequest httpRequest) {
+        String username = principalName.contains("@")
+                ? principalName.substring(0, principalName.indexOf("@")) : principalName;
+
+        try {
+            SecurityRealm realm = Jenkins.get().getSecurityRealm();
+            UserDetails userDetails = realm.loadUserByUsername2(username);
+            String resolved = userDetails.getUsername();
+            Authentication authToken = new UsernamePasswordAuthenticationToken(
+                    resolved,
+                    userDetails.getPassword(),
+                    userDetails.getAuthorities());
+
+            ACL.impersonate2(authToken);
+
+            populateUserSeed(httpRequest, resolved);
+            SecurityListener.fireLoggedIn(resolved);
+            logger.log(Level.INFO, "Authenticated user {0}", resolved);
+        } catch (UsernameNotFoundException e) {
+            logger.log(Level.WARNING, "Username {0} not registered by Jenkins", username);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "User authentication failed", e);
+        }
     }
 
     /**

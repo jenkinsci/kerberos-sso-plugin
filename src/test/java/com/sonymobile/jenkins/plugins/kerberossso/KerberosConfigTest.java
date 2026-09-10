@@ -24,6 +24,9 @@
 
 package com.sonymobile.jenkins.plugins.kerberossso;
 
+import hudson.model.Descriptor;
+import net.sf.json.JSONObject;
+
 import org.htmlunit.html.HtmlCheckBoxInput;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlInput;
@@ -34,11 +37,15 @@ import org.junit.Test;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.kohsuke.stapler.StaplerRequest2;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 
 /**
  * UI tests for the global configuration page of the plugin.
@@ -71,6 +78,9 @@ public class KerberosConfigTest {
                 form.getInputByName("_.krb5Location").setValueAttribute("/etc/krb5.conf");
                 form.getInputByName("_.loginServerModule").setValueAttribute("spnego-server");
                 form.getInputByName("_.loginClientModule").setValueAttribute("spnego-client");
+
+                form.getTextAreaByName("_.machinePrincipalPatterns").setText(
+                        "HOST/ci*@EXAMPLE.COM -> ci-servers, Production");
 
                 check(form.getInputByName("_.anonymousAccess"), true);
                 check(form.getInputByName("_.allowLocalhost"), true);
@@ -117,6 +127,8 @@ public class KerberosConfigTest {
     private void checkConfig(String loginConf) {
         PluginImpl plugin = PluginImpl.getInstance();
 
+        assertEquals(Collections.singletonList("host/ci*@example.com -> ci-servers, Production"),
+                plugin.getMachinePrincipalPatterns());
         assertEquals("account", plugin.getAccountName());
         assertEquals("pwd", plugin.getPassword().getPlainText());
         assertEquals(loginConf, plugin.getLoginLocation());
@@ -196,6 +208,39 @@ public class KerberosConfigTest {
                 assertFalse("allowUnsecureBasic not checked",
                         form.getInputByName("_.allowUnsecureBasic").hasAttribute("checked"));
             }
+        });
+    }
+
+    @Test
+    public void invalidMachinePatternDoesNotPartiallyApplyConfiguration() {
+        r.then(j -> {
+            PluginImpl plugin = PluginImpl.getInstance();
+            String originalLogin = plugin.getLoginLocation();
+            JSONObject data = new JSONObject();
+            data.put("account", "changed");
+            data.put("password", "changed");
+            data.put("loginLocation", getClass().getResource("login.conf").getFile());
+            data.put("krb5Location", "/changed");
+            data.put("loginServerModule", "spnego-server");
+            data.put("loginClientModule", "spnego-client");
+            data.put("anonymousAccess", true);
+            data.put("bypassPaths", "/changed");
+            data.put("machinePrincipalPatterns", "missing-realm");
+            data.put("allowLocalhost", false);
+            data.put("allowBasic", false);
+            data.put("allowUnsecureBasic", false);
+            data.put("allowDelegation", false);
+            data.put("promptNtlm", false);
+            JSONObject form = new JSONObject();
+            form.put("enabled", data);
+
+            assertThrows(Descriptor.FormException.class, () -> plugin.configure((StaplerRequest2)null, form));
+
+            checkDisabled();
+            assertEquals(PluginImpl.DEFAULT_SERVICE_ACCOUNT, plugin.getAccountName());
+            assertEquals(originalLogin, plugin.getLoginLocation());
+            assertFalse(plugin.getAnonymousAccess());
+            assertTrue(plugin.getBypassPaths().isEmpty());
         });
     }
 

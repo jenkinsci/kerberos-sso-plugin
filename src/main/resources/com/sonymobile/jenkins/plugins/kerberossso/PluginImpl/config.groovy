@@ -75,6 +75,10 @@ form.section(title:"Kerberos Single Sign-On") {
                 form.textarea(value:p.bypassPathsString)
             }
 
+            form.entry(field: "machinePrincipalPatterns", title:_("Machine principals")) {
+                form.textarea(value:p.machinePrincipalPatternsString)
+            }
+
             form.entry(title:_("Allow Localhost")) {
                 form.checkbox(field: "allowLocalhost", checked:p.allowLocalhost)
             }

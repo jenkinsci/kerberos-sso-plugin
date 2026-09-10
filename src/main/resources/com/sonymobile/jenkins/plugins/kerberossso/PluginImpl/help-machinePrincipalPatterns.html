@@ -1,0 +1,45 @@
+<div>
+  Kerberos machine/service principals that may authenticate, one pattern per line. A principal whose
+  local part contains <code>/</code> or ends in <code>$</code> is eligible to be matched, including
+  <code>host/fqdn@REALM</code>, <code>HTTP/server@REALM</code> and <code>NAME$@REALM</code>.
+  Eligibility alone admits nothing. A principal matching no pattern uses the security realm's user
+  lookup as before, so leaving this empty changes nothing and an instance name such as
+  <code>alice/admin@REALM</code> still resolves as that person. A denied principal is the exception:
+  it stays anonymous instead of falling back to the realm.
+
+  <p>
+    Patterns match the whole principal case-insensitively. <code>*</code> is the only wildcard and
+    is allowed only before <code>@</code>; name one nonempty, literal realm. Prefix a pattern with
+    <code>!</code> to deny it. Denial wins regardless of order and applies on the next negotiated
+    request, including one carrying a cookie; it does not stop work already running.
+  </p>
+
+  <p>
+    Allow patterns may grant comma-separated groups after <code>-&gt;</code>, for example
+    <code>host/ci*@EXAMPLE.COM -&gt; ci-servers, Production</code>. Matching groups are combined,
+    preserving their case, and every admitted machine also gets <code>kerberos-machines</code>.
+    Deny patterns cannot grant groups. <code>authenticated</code> is reserved and cannot be granted.
+    The identity is the lowercased full principal. Existing grants to that name or its groups apply.
+  </p>
+
+  <p>
+    Use explicit user/group authorization, such as Matrix Authorization. <b>Do not use machine
+    access with &ldquo;Logged-in users can do anything&rdquo;</b> or a strategy that trusts every
+    non-anonymous identity: omitting the <code>authenticated</code> authority does not restrict it.
+    For a build callback, grant the group global <code>Overall/Read</code> and only the target job's
+    <code>Job/Read</code> and <code>Job/Build</code>. Other or anonymous grants may also apply.
+  </p>
+
+  <p>
+    Disable <b>Allow anonymous access</b> for machine API calls. Each protected request must use
+    Kerberos; login cookies do not retain machine authentication. POST requests using Jenkins'
+    default CSRF protection still need a crumb and its session cookie. Bypassed and unprotected
+    paths, including <code>/whoAmI</code>, do not negotiate. See the README for a complete example.
+  </p>
+
+  <p>
+    Authentication itself does not create or save a Jenkins user record; other Jenkins features or
+    plugins may do so. Treat machine identities as low trust: local administrators can use their
+    host's credentials. Grant only what the automation requires.
+  </p>
+</div>

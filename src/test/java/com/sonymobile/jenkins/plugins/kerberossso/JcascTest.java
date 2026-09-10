@@ -95,6 +95,7 @@ public class JcascTest {
         assertEquals("spnego-client", i.getLoginClientModule());
         assertTrue(i.getAnonymousAccess());
         assertEquals(Collections.singletonList("/login"), i.getBypassPaths());
+        assertEquals(Collections.singletonList("host/*@example.com"), i.getMachinePrincipalPatterns());
         assertFalse(i.isAllowLocalhost());
         assertFalse(i.isAllowBasic());
         assertTrue(i.isAllowDelegation());
@@ -144,6 +145,7 @@ public class JcascTest {
         assertEquals("spnego-client", i.getLoginClientModule());
         assertFalse(i.getAnonymousAccess());
         assertEquals(Collections.emptyList(), i.getBypassPaths());
+        assertEquals(Collections.emptyList(), i.getMachinePrincipalPatterns());
         assertTrue(i.isAllowLocalhost());
         assertTrue(i.isAllowBasic());
         assertFalse(i.isAllowDelegation());
@@ -175,6 +177,21 @@ public class JcascTest {
         applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "acme.com")));
 
         assertEquals(Collections.singletonList("/login"), PluginImpl.getInstance().getBypassPaths());
+    }
+
+    @Test
+    public void invalidMachinePatternDoesNotPartiallyApplyConfiguration() throws Exception {
+        applyConfig(getJcascYaml("full", Collections.singletonMap("REDIRECT", "acme.com")));
+        PluginImpl plugin = PluginImpl.getInstance();
+        KerberosSSOFilter filter = plugin.getFilter();
+        String invalid = getJcascYaml("full", Collections.singletonMap("REDIRECT", "changed.com"))
+                .replace("host/*@EXAMPLE.COM", "missing-realm");
+
+        assertThrows(ConfiguratorException.class, () -> applyConfig(invalid));
+
+        assertEquals("acme.com", plugin.getRedirect());
+        assertSame(filter, plugin.getFilter());
+        assertEquals(Collections.singletonList("host/*@example.com"), plugin.getMachinePrincipalPatterns());
     }
 
     @Test

@@ -42,13 +42,123 @@ security:
     loginLocation: '/etc/login.conf'
     loginServerModule: 'spnego-server'
     loginClientModule: 'spnego-client'
-    anonymousAccess: true
+    anonymousAccess: false
+    machinePrincipalPatterns:
+      - 'host/*-laptop-*.remote.example.com@EXAMPLE.COM -> laptop-callbacks'
+      - 'host/ci*.example.com@EXAMPLE.COM               -> ci-servers, production'
+      - '*$@EXAMPLE.COM'
+      - '!decommissioned$@EXAMPLE.COM'
     allowLocalhost: false
     allowBasic: true
     allowDelegation: false
     allowUnsecureBasic: false
     promptNtlm: false
 ```
+
+## Machine principals
+
+Domain-joined hosts already hold Kerberos credentials of their own: `host/fqdn@REALM` from a Unix
+keytab, and `NAME$@REALM` for a Windows computer account. `machinePrincipalPatterns` lets those
+hosts call the Jenkins API as themselves, instead of being issued long-lived API tokens.
+
+```yaml
+security:
+  kerberosSso:
+    anonymousAccess: false
+    machinePrincipalPatterns:
+      - 'host/*-laptop-*.example.com@EXAMPLE.COM -> laptop-callbacks'
+      - 'host/ci*.example.com@EXAMPLE.COM -> ci-servers, Production'
+      - '!host/retired-laptop-1.example.com@EXAMPLE.COM'
+```
+
+Patterns match case-insensitively against the whole principal, realm included. `*` is the only
+wildcard and is allowed only before `@`; every pattern must name one nonempty, literal realm.
+A pattern beginning with `!` denies, and denial always wins, regardless of ordering. A new deny
+entry takes effect on the machine's next negotiated request, including requests carrying a cookie.
+It does not cancel builds or requests already running.
+
+An admitted machine authenticates as its lowercased principal, for example
+`host/agent01.example.com@example.com`. A pattern may grant groups after `->`, separated by commas.
+A machine matching several allow patterns receives the union of their groups, plus
+`kerberos-machines`. Group names keep their case. Deny patterns cannot grant groups, and
+`authenticated` is reserved and cannot be granted. In the UI, enter one pattern per line; commas
+separate groups within that line.
+
+### Authorization and compatibility
+
+Use an authorization strategy with explicit user/group grants, such as Matrix Authorization.
+Grant only the permissions each machine needs. Existing grants to the machine's name or any
+assigned group apply immediately; anonymous access granted by the strategy may also apply.
+
+**Do not enable machine access with "Logged-in users can do anything" or another strategy that
+trusts every non-anonymous authentication.** Machines are authenticated identities even though
+they do not carry the `authenticated` group authority. Omitting that authority does not constrain
+such strategies. Matrix Authorization is covered by the automated tests; other strategies need
+separate validation.
+
+**The allowlist decides, not the shape of the principal.** A principal whose local part contains `/`
+or ends in `$` is eligible to be matched, which covers `host/...`, services such as
+`HTTP/server@REALM`, and Windows computer accounts. Eligibility alone admits nothing: a principal
+that matches no pattern takes the security realm's user lookup exactly as it did before this
+feature existed. So configuring no patterns changes nothing, and a Kerberos instance name such as
+`alice/admin@REALM` keeps resolving as the person it belongs to.
+
+A denied principal is the exception. It stays anonymous rather than falling back to the realm,
+otherwise revoking a computer account would restore it as an ordinary user. That also makes the
+stricter posture available as configuration: `!*$@EXAMPLE.COM` stops every Windows computer account
+authenticating at all, including through a realm that would otherwise resolve it.
+
+The plugin does not create or save a Jenkins user record during machine authentication. Other
+Jenkins features or plugins may create records when an identity is used. Machine names and groups
+may not appear in authorization autocompletion; enter their exact names and select the appropriate
+user or group entry type.
+
+Treat these identities as low trust: a local administrator on a domain-joined host can use that
+host's credentials. In particular, granting build permission on a job allows a machine to run the
+job's configured automation and any credentials that automation uses.
+
+### Using it
+
+Set `anonymousAccess: false` so protected API requests negotiate. With `anonymousAccess: true`,
+only `/login` negotiates; a machine cannot log in there and then authenticate API calls using only
+a cookie. When machine patterns are configured, unauthenticated POSTs negotiate before Jenkins
+validates their crumbs. This also applies to human principals on those POSTs; normal CSRF validation
+still runs after authentication. Paths configured for bypass and unprotected paths such as `/whoAmI` skip negotiation and
+do not establish a machine identity. Check a protected API endpoint instead.
+
+For a laptop callback, select project-based Matrix Authorization and configure:
+
+- Global `Overall/Read` for the **group** `laptop-callbacks`.
+- `Job/Read` and `Job/Build` for that group on the `callback` job only.
+- No broader grants through another matching group or machine name.
+
+The following example requires `curl` with Negotiate support and `jq`. It acquires the host ticket,
+fetches a crumb, and triggers the job. Use the principal actually present in your keytab.
+
+```sh
+set -eu
+kinit -k -t /etc/krb5.keytab "host/$(hostname -f)@EXAMPLE.COM"
+
+jenkins_url='https://jenkins.example.com'
+cookie_jar=$(mktemp)
+trap 'rm -f "$cookie_jar"' EXIT
+
+crumb_json=$(curl --fail --silent --show-error --negotiate -u : \
+  --cookie-jar "$cookie_jar" "$jenkins_url/crumbIssuer/api/json")
+crumb_field=$(printf '%s' "$crumb_json" | jq -er '.crumbRequestField')
+crumb_value=$(printf '%s' "$crumb_json" | jq -er '.crumb')
+
+curl --fail --silent --show-error --negotiate -u : \
+  --cookie "$cookie_jar" --cookie-jar "$cookie_jar" \
+  --header "$crumb_field: $crumb_value" \
+  --request POST --dump-header - --output /dev/null \
+  "$jenkins_url/job/callback/build"
+```
+
+A successful trigger returns `201` with a queue location. Every protected request must authenticate
+with Kerberos; the cookie retains the HTTP session used by Jenkins' default CSRF crumb issuer,
+**not** the machine's authentication. Fetch a new crumb if the session expires. The job's build
+cause records the lowercased machine principal. A job without `Job/Read` is hidden with `404`.
 
 ## User guide
 
