@@ -45,6 +45,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static hudson.Functions.isWindows;
@@ -127,6 +128,20 @@ public class JcascTest {
         assertThat(out, containsString("allowDelegation: true"));
         assertThat(out, containsString("allowUnsecureBasic: false"));
         assertThat(out, containsString("promptNtlm: false"));
+    }
+
+    @Test
+    public void describesRedirectEnabled() throws Exception {
+        JcascConfigurator configurator = new JcascConfigurator();
+        assertTrue(configurator.describe().stream().anyMatch(a -> "redirectEnabled".equals(a.getName())));
+        assertTrue(configurator.getAttributes().stream().anyMatch(a -> "redirectEnabled".equals(a.getName())));
+    }
+
+    @Test
+    public void redirectOffMatchesSchema() throws Exception {
+        List<String> errors = io.jenkins.plugins.casc.misc.Util.validateSchema(
+                io.jenkins.plugins.casc.misc.Util.convertYamlFileToJson(this, "JcascTest/redirectOff.yaml"));
+        assertTrue(errors.toString(), errors.stream().noneMatch(e -> e.contains("redirectEnabled")));
     }
 
     @Test

@@ -159,6 +159,7 @@ public class JcascConfigurator extends BaseConfigurator<PluginImpl> {
                 new Attribute<PluginImpl, String>("accountName", String.class).getter(PluginImpl::getAccountName).setter(noop()),
                 new Attribute<PluginImpl, Secret>("password", String.class).getter(PluginImpl::getPassword).setter(noop()),
                 new Attribute<PluginImpl, String>("redirect", String.class).getter(PluginImpl::getRedirect).setter(noop()),
+                new Attribute<PluginImpl, Boolean>("redirectEnabled", Boolean.class).getter(PluginImpl::isRedirectEnabled).setter(noop()),
                 new Attribute<PluginImpl, String>("krb5Location", String.class).getter(PluginImpl::getKrb5Location).setter(noop()),
                 new Attribute<PluginImpl, String>("loginLocation", String.class).getter(PluginImpl::getLoginLocation).setter(noop()),
                 new Attribute<PluginImpl, String>("loginServerModule", String.class).getter(PluginImpl::getLoginServerModule).setter(noop()),
